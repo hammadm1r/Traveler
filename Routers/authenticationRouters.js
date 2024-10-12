@@ -4,4 +4,4 @@ router.post('/signup',(req,res)=>{
     res.json('Received');
 })
 
-module.exports = {router}
+module.exports = router;
