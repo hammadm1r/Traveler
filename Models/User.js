@@ -21,8 +21,14 @@ const userSchema = new Schema({
     required: true,
   },
   profilePicture: {
-    type: String,
-    default: "", // Link or path to user's profile picture
+    publicId: {
+      type: String,
+      default: null, // Default value if publicId is not set
+    },
+    url: {
+      type: String,
+      default: "https://res.cloudinary.com/djiqzvcev/image/upload/v1729021294/blank-profile-picture-973460_1280_kwgltq.png", // Default profile picture URL
+    },
   },
   bio: {
     type: String,
