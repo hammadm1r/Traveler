@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const dbconnection = require('./db');
 const authentication = require('./Routers/authenticationRouters');
 const morgan = require('morgan')
+const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 
 
@@ -11,13 +12,18 @@ dbconnection;
 
 // configuration  Cloudinary           
 cloudinary.config({ 
-  cloud_name: 'djiqzvcev', 
-  api_key: '322681695714438', 
+  cloud_name: process.env.CLOUD_NAME, 
+  api_key: process.env.API_KEY, 
   api_secret: process.env.CLOUDINARY_API_SECRET 
 });
 
 const app = express()
 const port = process.env.PORT;
+
+app.use(cors({ 
+  credentials: true,
+  origin:'*',
+}));
 
 app.use(morgan('common'));
 app.use(bodyParser.json({ limit: '10mb' }));
