@@ -10,6 +10,11 @@ const userSchema = new Schema({
     unique: true,
     trim: true,
   },
+  fullname: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   email: {
     type: String,
     required: true,
@@ -76,6 +81,11 @@ const userSchema = new Schema({
       },
     },
   ],
+  verified: {
+    type: Number,
+    enum: [0, 1],
+    default: 0, // Set default to 0 (unverified)
+  },
   createdAt: {
     type: Date,
     default: Date.now,

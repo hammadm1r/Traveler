@@ -24,7 +24,7 @@ app.use(cors({
   credentials: true,
   origin:'*',
 }));
-
+app.use("/uploads", express.static("uploads"));
 app.use(morgan('common'));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use('/auth',authentication)

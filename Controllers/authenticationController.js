@@ -5,8 +5,8 @@ const { signjwt } = require("../Middleware/jwtAuthMiddleware");
 const signup = async (req, res) => {
   try {
     console.log(req.body);
-    const {username,email,password,dateOfBirth,profilePicture } = req.body;
-    if (!username || !email || !password || !dateOfBirth) {
+    const {username,fullname,email,password,dateOfBirth,profilePicture } = req.body;
+    if (!username || !email || !password || !dateOfBirth || !fullname) {
       return res.send(error(400, "Please fill all the fields"));
     }
     const userMailExist = await user.findOne({ email });
@@ -17,16 +17,12 @@ const signup = async (req, res) => {
     if (userNameExist) {
       return res.send(error(400, "User with this name already exist"));
     }
-    let cloudImg = { public_id: null, url: null }; // default empty object
-    if (profilePicture) {
-      cloudImg = await cloudinary.uploader.upload(profilePicture, {
-        folder: "Profile_Pictures"
-      });
-      console.log(cloudImg);
+    let UploadedImg = { public_id: null, url: "/uploads/defaultProfileImage.png" }; // default empty object
+    if (req.file.filename) {
+      UploadedImg = { url:`/uploads/${req.file.filename}`};
     }
-    const newUser = new user({ username, email, password, dateOfBirth, profilePicture:{
-        publicId:cloudImg.public_id,
-        url:cloudImg.url,
+    const newUser = new user({ username, fullname, email, password, dateOfBirth, profilePicture:{
+        url:UploadedImg.url,
     } });
     await newUser.save();
     const token = signjwt(newUser._id);
@@ -66,4 +62,4 @@ const getProfile = async (req, res) => {
   } catch (error) {}
 };
 
-module.exports = { signup,login, getProfile };
+module.exports = {signup,login, getProfile };
