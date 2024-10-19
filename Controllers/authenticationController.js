@@ -1,34 +1,73 @@
 const user = require("../Models/user");
 const { success, error } = require("../Utils/responseWrapper");
 const { signjwt } = require("../Middleware/jwtAuthMiddleware");
+const cloudinary = require("../Utils/cloudinaryConfig");
 
 const signup = async (req, res) => {
   try {
-    console.log(req.body);
-    const {username,fullname,email,password,dateOfBirth,profilePicture } = req.body;
+    const { username, fullname, email, password, dateOfBirth } = req.body;
+
+    // Validate the required fields
     if (!username || !email || !password || !dateOfBirth || !fullname) {
-      return res.send(error(400, "Please fill all the fields"));
+      return res.status(400).json({ error: "Please fill all the fields" });
     }
+
+    // Check if email or username already exists
     const userMailExist = await user.findOne({ email });
     const userNameExist = await user.findOne({ username });
     if (userMailExist) {
-      return res.send(error(400, "Email already exist"));
+      return res.status(400).json({ error: "Email already exists" });
     }
     if (userNameExist) {
-      return res.send(error(400, "User with this name already exist"));
+      return res
+        .status(400)
+        .json({ error: "User with this name already exists" });
     }
-    let UploadedImg = { public_id: null, url: "/uploads/defaultProfileImage.png" }; // default empty object
-    if (req.file.filename) {
-      UploadedImg = { url:`/uploads/${req.file.filename}`};
+
+    // Initialize default profile image
+    let CloudImg = { public_id: null, url: "/uploads/defaultProfileImage.png" }; // default empty object
+
+    // Handle file upload to Cloudinary
+    if (req.file) {
+      // Create a promise to handle the async upload
+      const uploadPromise = new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "Profile_Pictures" },
+          (error, result) => {
+            if (error) {
+              return reject({ message: "Upload to Cloudinary failed", error });
+            }
+            resolve({ public_id: result.public_id, url: result.secure_url });
+          }
+        );
+
+        // Send the buffer to Cloudinary
+        stream.end(req.file.buffer);
+      });
+
+      // Wait for the upload to complete
+      CloudImg = await uploadPromise;
     }
-    const newUser = new user({ username, fullname, email, password, dateOfBirth, profilePicture:{
-        url:UploadedImg.url,
-    } });
+
+    // Create new user with or without uploaded profile image
+    const newUser = new user({
+      username,
+      fullname,
+      email,
+      password,
+      dateOfBirth,
+      profilePicture: CloudImg, // Add the profile picture to user object
+    });
+
+    // Save the user to the database
     await newUser.save();
+
+    // Generate token
     const token = signjwt(newUser._id);
-    return res.send(success(200, token));
+    return res.status(200).json({ success: true, token });
   } catch (err) {
-    return res.send(error(400, err));
+    console.log(err);
+    return res.send(error(500, err.message));
   }
 };
 
@@ -62,4 +101,4 @@ const getProfile = async (req, res) => {
   } catch (error) {}
 };
 
-module.exports = {signup,login, getProfile };
+module.exports = { signup, login, getProfile };
