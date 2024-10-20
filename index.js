@@ -1,5 +1,4 @@
 const express = require('express')
-const bodyParser = require("body-parser");
 const dbconnection = require('./db');
 const authentication = require('./Routers/authenticationRouters');
 const morgan = require('morgan')
@@ -22,7 +21,8 @@ app.use(cors({
 }));
 app.use("/uploads", express.static("uploads"));
 app.use(morgan('common'));
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/auth',authentication)
 app.use('/post',postRouter)
 app.get('/', (req, res) => {
