@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const postSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
-    ref: "User", // Reference to the user who made the post
+    ref: "user", // Reference to the user who made the post
     required: true,
   },
   title: {
@@ -54,20 +54,20 @@ const postSchema = new Schema({
   tags: [
     {
       type: Schema.Types.ObjectId,
-      ref: "User", // Reference to users tagged in the post
+      ref: "user", // Reference to users tagged in the post
     },
   ],
   likes: [
     {
       type: Schema.Types.ObjectId,
-      ref: "User", // Reference to the user who liked the post
+      ref: "user", // Reference to the user who liked the post
     },
   ],
   comments: [
     {
       userId: {
         type: Schema.Types.ObjectId,
-        ref: "User", // Reference to the user who commented
+        ref: "user", // Reference to the user who commented
         required: true,
       },
       commentText: {
