@@ -7,7 +7,7 @@ const postSchema = new Schema({
     ref: "User", // Reference to the user who made the post
     required: true,
   },
-  heading: {
+  title: {
     type: String,
     required: true,
     trim: true,

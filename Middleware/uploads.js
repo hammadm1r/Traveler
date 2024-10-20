@@ -1,5 +1,5 @@
 const multer  = require('multer')
-const path = require('path');
+
 
 const storage = multer.memoryStorage()
 
@@ -10,5 +10,8 @@ const upload = multer({ storage: storage ,
     }
     // ,fileFilter: fileFilterConfig,
 });
+const singleUpload = upload.single('profilePicture'); // For single file uploads
+const multipleUpload = upload.array('media', 10);   // For multiple file uploads (max 10)
 
-  module.exports = upload;
+// Export the upload middleware
+module.exports = { singleUpload, multipleUpload };
