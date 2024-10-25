@@ -134,8 +134,73 @@ const addComment = async (req, res) => {
       .json(success(200, { post: mapPostOutput(post, curUserId) }));
   } catch (err) {
     console.error("Error in addComment:", err); // Log the error for debugging purposes
-    return res.status(500).json(error(500, "Something went wrong"));
+    return res.send(error(500, "Something went wrong"));
   }
 };
 
-module.exports = { createPost, likeAndUnlikePost, addComment };
+const deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.body;
+    const curUserId = req.user.user_Id;
+
+    // Find the post by ID and populate comments with userId reference
+    const post = await Post.findById(postId).populate("comments.userId");
+    if (!post) {
+      return res.status(404).json(error(404, "Post Not Found"));
+    }
+
+    // Find the comment by ID
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json(error(404, "Comment Not Found"));
+    }
+
+    // Check if the comment belongs to the current user
+    if (comment.userId._id.toString() === curUserId) {
+      // Remove the comment from the comments array
+      post.comments.pull(commentId);
+      // Save the updated post
+      await post.save();
+      
+      // Return the response with the mapped output of the updated post
+      return res
+        .status(200)
+        .json(success(200, { post: mapPostOutput(post, curUserId) }));
+    } else {
+      return res.status(403).json(error(403, "Unauthorized to delete this comment"));
+    }
+  } catch (err) {
+    return res.send(error(500, "Something went wrong"));
+  }
+};
+
+const deletePost = async(req,res) =>{
+  try {
+    const {postId}=req.body;
+        const curUserId = req.user.user_Id;
+        const post = await Post.findById(postId).populate("userId");
+        const curUser = await user.findById(curUserId);
+        if(!post){
+          return res.send(error(404,"Post Not Found"));
+      }
+      if(post.userId._id.toString() !== curUserId){
+        return res.send(error(403,'Only Owners can Delete Their Post'))
+    }
+    const index = curUser.posts.indexOf(postId);
+    if (index > -1) {
+      curUser.posts.splice(index, 1);
+      await curUser.save();
+    }
+
+    // Remove the post itself
+    await Post.findByIdAndDelete(postId);
+    return res
+        .status(200)
+        .json(success(200, { post: mapPostOutput(post, curUserId) }));
+  } catch (err) {
+    return res.send(error(500, "Something went wrong"));
+  }
+}
+
+
+module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost};
