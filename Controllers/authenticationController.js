@@ -25,7 +25,7 @@ const signup = async (req, res) => {
     }
 
     // Initialize default profile image
-    let CloudImg = { public_id: null, url: "/uploads/defaultProfileImage.png" }; // default empty object
+    let CloudImg = { public_id: null, url: "/https://res.cloudinary.com/djiqzvcev/image/upload/v1729021294/blank-profile-picture-973460_1280_kwgltq.png" }; // default empty object
 
     // Handle file upload to Cloudinary
     if (req.file) {
