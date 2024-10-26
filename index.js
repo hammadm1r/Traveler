@@ -3,6 +3,7 @@ const dbconnection = require('./db');
 const authentication = require('./Routers/authenticationRouters');
 const morgan = require('morgan')
 const postRouter = require('./Routers/postRouter');
+const userRouter = require('./Routers/userRouter');
 const cors = require('cors');
 
 
@@ -19,12 +20,12 @@ app.use(cors({
   credentials: true,
   origin:'*',
 }));
-app.use("/uploads", express.static("uploads"));
 app.use(morgan('common'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/auth',authentication)
 app.use('/post',postRouter)
+app.use('/user',userRouter)
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
