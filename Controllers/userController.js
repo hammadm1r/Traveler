@@ -36,7 +36,22 @@ const followAndUnfollow = async (req, res) => {
         await curUser.save();
         await followUser.save();
 
-        return res.status(200).send(success(200, { user: followUser }));
+        return res.status(200).send(success(200, {
+            message: isFollowing ? "User followed successfully" : "User unfollowed successfully",
+            user: {
+                _id: followUser._id,
+                username: followUser.username,
+                followersCount: followUser.followers.length,
+                followingCount: followUser.following.length,
+                isFollowing,
+            },
+            currentUser: {
+                _id: curUser._id,
+                username: curUser.username,
+                followersCount: curUser.followers.length,
+                followingCount: curUser.following.length,
+            }
+        }));
     } catch (err) {
         console.error("Error in followAndUnfollow:", err);
         return res.status(500).send(error(500, "Something went wrong"));
