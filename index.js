@@ -18,11 +18,11 @@ const port = process.env.PORT;
 
 app.use(cors({ 
   credentials: true,
-  origin:'*',
+  origin:'http://localhost:5173',
 }));
 app.use(morgan('common'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '10mb',extended: true }));
 app.use('/auth',authentication)
 app.use('/post',postRouter)
 app.use('/user',userRouter)

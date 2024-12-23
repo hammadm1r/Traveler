@@ -25,7 +25,9 @@ const postSchema = new Schema({
     type: [String], // Array of strings for hashtags
     validate: {
       validator: function (v) {
-        return v.length <= 5; // Maximum of 5 hashtags
+        // Ensure there are no more than 5 hashtags
+        const validHashtags = v.every(tag => typeof tag === 'string' && tag.startsWith('#'));
+        return v.length <= 5 && validHashtags; // No more than 5 hashtags and all should start with #
       },
       message: "You can add up to 5 hashtags only!",
     },

@@ -1,14 +1,15 @@
 const user = require("../Models/user");
 const { success, error } = require("../Utils/responseWrapper");
 const { signjwt } = require("../Middleware/jwtAuthMiddleware");
+const { mapPostOutput } = require("../Utils/utils");
 const cloudinary = require("../Utils/cloudinaryConfig");
 
 const signup = async (req, res) => {
   try {
-    const { username, fullname, email, password, dateOfBirth } = req.body;
+    const { username, fullname, email, password, dateOfBirth,bio } = req.body;
 
     // Validate the required fields
-    if (!username || !email || !password || !dateOfBirth || !fullname) {
+    if (!username || !email || !password || !dateOfBirth || !fullname || !bio) {
       return res.status(400).json({ error: "Please fill all the fields" });
     }
 
@@ -56,6 +57,7 @@ const signup = async (req, res) => {
       email,
       password,
       dateOfBirth,
+      bio,
       profilePicture: CloudImg, // Add the profile picture to user object
     });
 
@@ -74,10 +76,12 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(req.body);
     if (!email || !password) {
       return res.send(error(400, "Please fill all the fields"));
     }
-    const userExisted = await user.findOne({ email });
+    const userExisted = await user.findOne({ email }).select('+password');;
+    console.log(userExisted);
     if (!userExisted) {
       return res.send(error(403, "User does'nt Existed"));
     }
@@ -94,11 +98,43 @@ const login = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const user_Id = req.user.user_Id;
-    console.log(user_Id);
-    const profile = await user.findById(user_Id);
-    return res.send(success(200, profile));
-  } catch (error) {}
-};
+    const user_Id = req.user.user_Id;  
+    
+        // Find the user by ID
+        const userProfile = await user.findById(user_Id);
+    
+        // If user profile not found, return a 404 error
+        if (!userProfile) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        // Populate the posts with the 'userId' field data
+        const allPosts = await userProfile.populate({
+          path: 'posts', // Assuming 'posts' is an array of post references in the user model
+          populate: {
+            path: 'userId', // Assuming each post has a 'userId' field that you want to populate
+          },
+        });
+
+        const posts = allPosts.posts.map(item => mapPostOutput(item, req._id)).reverse();
+        // Log populated user profile (you can modify this or remove it later)
+        // Return the user profile and posts
+        return res.status(200).json({
+          success: true,
+          data: {userProfile,posts}
+        });
+    
+      } catch (err) {
+        console.error(err);
+        // Handle errors
+        return res.status(500).json({
+          success: false,
+          message: "Server error",
+          error: err.message,
+        });
+      }
+    }
+
+
 
 module.exports = { signup, login, getProfile };
