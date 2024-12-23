@@ -4,6 +4,11 @@ const ta = require('time-ago');
 const mapPostOutput = (post, curUserId) => {
   const timeAgo = ta;
   return {
+    owner:{
+      _id:post.userId._id,
+      name:post.userId.fullname,
+      avatar:post.userId.profilePicture
+  },
     id: post._id,
     title: post.title,
     description: post.description,
