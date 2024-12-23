@@ -1,6 +1,7 @@
 const user = require("../Models/user");
 const { success, error } = require("../Utils/responseWrapper");
 const { signjwt } = require("../Middleware/jwtAuthMiddleware");
+const mongoose = require("mongoose");
 const { mapPostOutput } = require("../Utils/utils");
 const cloudinary = require("../Utils/cloudinaryConfig");
 

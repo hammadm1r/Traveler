@@ -1,13 +1,14 @@
 const Post = require("../Models/post");
 const user = require("../Models/user");
+const mongoose = require("mongoose");
 const { mapPostOutput } = require("../Utils/utils");
 const { success, error } = require("../Utils/responseWrapper");
 
 const followAndUnfollow = async (req, res) => {
     try {
         const curUserId = req.user.user_Id;
-        const { followId } = req.body;
-
+        const  {followId}  = req.body;
+        console.log(req.body);
         // Check for self-follow attempt
         if (curUserId === followId) {
             return res.status(400).send(error(400, "You can't follow yourself"));
@@ -38,7 +39,7 @@ const followAndUnfollow = async (req, res) => {
             curUser.following.push(followId);
             followUser.followers.push(curUserId);
         }
-
+        
         // Save changes
         await curUser.save();
         await followUser.save();
@@ -46,18 +47,16 @@ const followAndUnfollow = async (req, res) => {
         return res.status(200).send(success(200, {
             message: isFollowing ? "User unfollowed successfully" : "User followed successfully",
             user: {
-                _id: followUser._id,
                 username: followUser.username,
-                followersCount: followUser.followers.length,
-                followingCount: followUser.following.length,
+                followersCount: followUser.followers,
+                followingCount: followUser.following,
                 isFollowing: !isFollowing,
             },
             currentUser: {
-                _id: curUser._id,
                 username: curUser.username,
-                followersCount: curUser.followers.length,
-                followingCount: curUser.following.length,
-            }
+                followersCount: curUser.followers,
+                followingCount: curUser.following,
+            },
         }));
     } catch (err) {
         console.error("Error in followAndUnfollow:", err);
@@ -98,7 +97,9 @@ const getUserProfile = async (req, res) => {
     try {
       const { _id } = req.params;
       console.log(_id);
-  
+      if (!mongoose.Types.ObjectId.isValid(_id)) {
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
       // Find the user by ID
       const userProfile = await user.findById(_id);
   
@@ -116,11 +117,13 @@ const getUserProfile = async (req, res) => {
       });
       console.log(allPosts);
       const posts = allPosts.posts.map(item => mapPostOutput(item, req._id)).reverse();
+      const isFollowing = userProfile.following.includes(req.user.user_Id);
+      console.log(isFollowing);
       // Log populated user profile (you can modify this or remove it later)
       // Return the user profile and posts
       return res.status(200).json({
         success: true,
-        data: {userProfile,posts}
+        data: {userProfile,posts,isFollowing}
       });
   
     } catch (err) {
