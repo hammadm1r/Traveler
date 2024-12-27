@@ -12,6 +12,6 @@ const upload = multer({ storage: storage ,
 });
 const singleUpload = upload.single('profilePicture'); // For single file uploads
 const multipleUpload = upload.array('media[]', 5);   // For multiple file uploads (max 10)
-
+const storyUpload = upload.single('story')
 // Export the upload middleware
-module.exports = { singleUpload, multipleUpload };
+module.exports = { singleUpload, multipleUpload,storyUpload };
