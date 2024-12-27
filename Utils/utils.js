@@ -19,10 +19,13 @@ const mapPostOutput = (post, curUserId) => {
     rating: post.rating,
     media: post.media,
     tags: post.tags,
+    likes:post.likes,
     likesCount: post.likes.length,
     isLikedByUser: post.likes.includes(curUserId),
     comments: post.comments.map(comment => ({
-      userId: comment.userId,
+      userId: comment.userId._id,
+      userProfileImage:comment.userId.profilePicture.url,
+      commentUserName: comment.userId.fullname,
       commentText: comment.commentText,
       commentedAt: timeAgo.ago(comment.commentedAt), // Showing comment time as "time ago"
     })),

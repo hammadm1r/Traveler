@@ -9,9 +9,9 @@ const createPost = async (req, res) => {
   try {
     // Destructure the required fields from the request body
     const { title, description, location, hashtags, rating, tags } = req.body;
-
+    console.log(req.body);
     // Check if all required fields are present
-    if (!title || !description || !location || !hashtags || !rating) {
+    if (!title || !description || !location  || !rating) {
       return res.send(error(400, "All fields are required"));
     }
     if (tags && tags.length > 0) {
@@ -64,8 +64,9 @@ const createPost = async (req, res) => {
     });
     auther.posts.push(newPost._id);
     await auther.save();
+    const message = "Post Has Been Uploarded"
     // Return a success response with the created post
-    return res.send(success(201, newPost));
+    return res.send(success(201, {newPost,message}));
   } catch (err) {
     console.error(err); // Log the error for debugging purposes
     return res.send(error(500, "Something went wrong"));
@@ -76,7 +77,7 @@ const likeAndUnlikePost = async (req, res) => {
   try {
     const { postId } = req.body;
     const curUserId = req.user.user_Id;
-
+    console.log(req.body)
     // Find the post by ID and populate the userId reference
     const post = await Post.findById(postId).populate("userId");
     if (!post) {
@@ -90,8 +91,10 @@ const likeAndUnlikePost = async (req, res) => {
     const updateOperation = isLiked
       ? { $pull: { likes: curUserId } } // Remove the user ID from likes array
       : { $addToSet: { likes: curUserId } }; // Add the user ID to likes array
-
     // Update the post and return the updated post
+    const message = isLiked
+    ? 'You have unliked the post.'
+    : 'You have liked the post.';
     const updatedPost = await Post.findByIdAndUpdate(postId, updateOperation, {
       new: true,
     }).populate("userId");
@@ -99,7 +102,7 @@ const likeAndUnlikePost = async (req, res) => {
     // Return the response with the mapped output of the updated post
     return res
       .status(200)
-      .json(success(200, { post: mapPostOutput(updatedPost, curUserId) }));
+      .json(success(200, { post: mapPostOutput(updatedPost, curUserId),message }));
   } catch (err) {
     console.error("Error in likeAndUnlikePost:", err); // Log the error for debugging purposes
     return res.status(500).json(error(500, "Something went wrong"));
@@ -112,7 +115,7 @@ const addComment = async (req, res) => {
     const curUserId = req.user.user_Id;
 
     // Find the post by ID and populate the userId reference
-    const post = await Post.findById(postId).populate("userId");
+    const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json(error(404, "Post Not Found"));
     }
@@ -128,11 +131,24 @@ const addComment = async (req, res) => {
 
     // Save the updated post
     await post.save();
+    let responsePost = await Post.findById(postId).populate({
+      path: 'userId', // Populate user data
+    })
+    .populate({
+      path: 'comments', // Populate comments
+      populate: {
+        path: 'userId', // Assuming each comment has an 'author' field to populate
+        select: 'fullname profilePicture',
+      },
+    });
+    responsePost = mapPostOutput(responsePost, curUserId)
+    responsePost.comments = responsePost.comments.reverse();
+    console.log(responsePost.comments);
 
     // Return the response with the mapped output of the updated post
     return res
       .status(200)
-      .json(success(200, { post: mapPostOutput(post, curUserId) }));
+      .json(success(200, { responsePost}));
   } catch (err) {
     console.error("Error in addComment:", err); // Log the error for debugging purposes
     return res.send(error(500, "Something went wrong"));
@@ -202,6 +218,29 @@ const deletePost = async(req,res) =>{
     return res.send(error(500, "Something went wrong"));
   }
 }
+const getPost = async (req, res) => {
+  try {
+    const { _id } = req.params; // Extract post ID from request parameters
+    console.log(_id);
+
+    // Fetch post from the database, populate the userId field
+    let post = await Post.findById(_id).populate("userId");
+    if (!post) {
+      return res.status(404).send(error("Post Not Found")); // Return 404 if post is not found
+    }
+
+    console.log(post);
+
+    // Map the post output (assuming mapPostOutput is a method attached to the Post model)
+    // Send the post back as a successful response
+    return res.status(200).send(success(200,{post:mapPostOutput(post, req.user.user_Id)}));
+
+  } catch (err) {
+    console.error(err); // Log the error for debugging
+    return res.status(500).send(error("Something went wrong")); // Return 500 error if an exception occurs
+  }
+};
 
 
-module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost};
+
+module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost};

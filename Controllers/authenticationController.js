@@ -7,8 +7,9 @@ const cloudinary = require("../Utils/cloudinaryConfig");
 
 const signup = async (req, res) => {
   try {
+    console.log(req.body);
     const { username, fullname, email, password, dateOfBirth,bio } = req.body;
-
+    console.log(req.body);
     // Validate the required fields
     if (!username || !email || !password || !dateOfBirth || !fullname || !bio) {
       return res.status(400).json({ error: "Please fill all the fields" });
@@ -100,7 +101,7 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user_Id = req.user.user_Id;  
-    
+      console.log(user_Id)
         // Find the user by ID
         const userProfile = await user.findById(user_Id);
     
@@ -112,10 +113,12 @@ const getProfile = async (req, res) => {
         // Populate the posts with the 'userId' field data
         const allPosts = await userProfile.populate({
           path: 'posts', // Assuming 'posts' is an array of post references in the user model
-          populate: {
+          populate: [{
             path: 'userId', // Assuming each post has a 'userId' field that you want to populate
+          },{
+            path: 'comments', populate: { path: 'userId',select: 'fullname profilePicture', } // Assuming 'comments' is another field to populate
           },
-        });
+        ]});
 
         const posts = allPosts.posts.map(item => mapPostOutput(item, req._id)).reverse();
         // Log populated user profile (you can modify this or remove it later)
