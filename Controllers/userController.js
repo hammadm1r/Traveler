@@ -72,18 +72,30 @@ const getFeedData = async (req, res) => {
         console.log(curUserId);
         // Fetch the current user and populate 'following'
         const curUser = await user.findById(curUserId)
-
+        console.log(curUser);
         // Get the IDs of the users that the current user follows
         const followingIds = curUser.following.map(item => item._id);
         followingIds.push(req.user.user_Id); // Add current user's own ID to include their own posts in the feed
         // Fetch posts from users that the current user follows
+
+        console.log(followingIds);
         const fullPosts = await Post.find({
-            userId: { $in: followingIds } // Posts from followed users and the current user
-        }).populate('userId'); // Populate user data for each post
-        // Map posts to the output format (assuming `mapPostOutput` is defined elsewhere)
-
-        const posts = fullPosts.map(item => mapPostOutput(item, req._id)).reverse(); // Reverse to show newest first
-
+          userId: { $in: followingIds },
+        })
+          .populate({
+            path: 'userId', // Populate user data
+          })
+          .populate({
+            path: 'comments', // Populate comments
+            populate: {
+              path: 'userId', // Assuming each comment has an 'author' field to populate
+              select: 'fullname profilePicture',
+            },
+          });
+        console.log(fullPosts);
+        const posts = fullPosts.map(item => mapPostOutput(item, curUserId)).reverse(); // Reverse to show newest first
+        console.log('Full Post',fullPosts[0].likes.includes(curUserId));
+        console.log('Posts',posts[0].isLikedByUser);
         // Send back only the posts (no user details or suggestions)
         return res.send(success(200, posts));
 
@@ -111,13 +123,19 @@ const getUserProfile = async (req, res) => {
       // Populate the posts with the 'userId' field data
       const allPosts = await userProfile.populate({
         path: 'posts', // Assuming 'posts' is an array of post references in the user model
-        populate: {
-          path: 'userId', // Assuming each post has a 'userId' field that you want to populate
-        },
+        populate: [
+          {
+            path: 'userId', // Assuming each post has a 'userId' field that you want to populate
+          },
+          {
+            path: 'comments', populate: { path: 'userId',select: 'fullname profilePicture', } // Assuming 'comments' is another field to populate
+          },
+        ],
       });
+      
       console.log(allPosts);
-      const posts = allPosts.posts.map(item => mapPostOutput(item, req._id)).reverse();
-      const isFollowing = userProfile.following.includes(req.user.user_Id);
+      const posts = allPosts.posts.map(item => mapPostOutput(item, req.user.user_Id)).reverse();
+      const isFollowing = userProfile.followers.includes(req.user.user_Id);
       console.log(isFollowing);
       // Log populated user profile (you can modify this or remove it later)
       // Return the user profile and posts
