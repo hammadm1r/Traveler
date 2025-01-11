@@ -138,7 +138,11 @@ const getProfile = async (req, res) => {
         });
       }
     }
+ 
+    const updateProfile = async(req,res) =>{
+      console.log(req.body);
+      
+    }
 
 
-
-module.exports = { signup, login, getProfile };
+module.exports = { signup, login, getProfile ,updateProfile};

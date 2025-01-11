@@ -77,12 +77,16 @@ const likeAndUnlikePost = async (req, res) => {
   try {
     const { postId } = req.body;
     const curUserId = req.user.user_Id;
+    console.log(postId);
+    console.log(curUserId);
     console.log(req.body)
     // Find the post by ID and populate the userId reference
     const post = await Post.findById(postId).populate("userId");
+    console.log("83")
     if (!post) {
       return res.status(404).json(error(404, "Post Not Found"));
     }
+    console.log("87")
 
     // Check if the user has already liked the post
     const isLiked = post.likes.includes(curUserId);
@@ -98,11 +102,18 @@ const likeAndUnlikePost = async (req, res) => {
     const updatedPost = await Post.findByIdAndUpdate(postId, updateOperation, {
       new: true,
     }).populate("userId");
-
+    console.log(updatedPost);
+    const responsePost = await updatedPost.populate({
+      path: 'comments', // Populate comments
+      populate: {
+        path: 'userId', // Assuming each comment has an 'author' field to populate
+        select: 'fullname profilePicture',
+      },
+    });
     // Return the response with the mapped output of the updated post
     return res
       .status(200)
-      .json(success(200, { post: mapPostOutput(updatedPost, curUserId),message }));
+      .json(success(200, { post: mapPostOutput(responsePost, curUserId),message }));
   } catch (err) {
     console.error("Error in likeAndUnlikePost:", err); // Log the error for debugging purposes
     return res.status(500).json(error(500, "Something went wrong"));
