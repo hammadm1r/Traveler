@@ -22,7 +22,7 @@ const mapPostOutput = (post, curUserId) => {
     likes:post.likes,
     likesCount: post.likes.length,
     isLikedByUser: post.likes.includes(curUserId),
-    comments: post.comments.map(comment => ({
+    comments: post?.comments?.map(comment => ({
       userId: comment.userId._id,
       userProfileImage:comment.userId.profilePicture.url,
       commentUserName: comment.userId.fullname,
