@@ -40,6 +40,10 @@ const userSchema = new Schema({
     type: String,
     maxLength: 300, // Optional short bio
   },
+  koFiUrl: { 
+    type: String,
+    required: false
+  },
   dateOfBirth: {
     type: Date, // Field to store date of birth
     required: true, // Change to true if you want to make it mandatory
