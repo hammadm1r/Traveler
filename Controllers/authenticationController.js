@@ -8,7 +8,7 @@ const cloudinary = require("../Utils/cloudinaryConfig");
 const signup = async (req, res) => {
   try {
     console.log(req.body);
-    const { username, fullname, email, password, dateOfBirth,bio } = req.body;
+    const { username, fullname, email, password, dateOfBirth,bio,Kofi } = req.body;
     console.log(req.body);
     // Validate the required fields
     if (!username || !email || !password || !dateOfBirth || !fullname || !bio) {
@@ -59,10 +59,11 @@ const signup = async (req, res) => {
       email,
       password,
       dateOfBirth,
+      koFiUrl: Kofi,
       bio,
       profilePicture: CloudImg, // Add the profile picture to user object
     });
-
+    console.log(newUser);
     // Save the user to the database
     await newUser.save();
 

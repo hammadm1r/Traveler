@@ -7,7 +7,8 @@ const mapPostOutput = (post, curUserId) => {
     owner:{
       _id:post.userId._id,
       name:post.userId.fullname,
-      avatar:post.userId.profilePicture
+      avatar:post.userId.profilePicture,
+      koFiUrl:post?.userId?.koFiUrl
   },
     id: post._id,
     title: post.title,
