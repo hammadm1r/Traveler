@@ -3,7 +3,7 @@ const getTrendingPosts = async () => {
   const trendingPosts = await Post.find({})
     .sort({ likesCount: -1 }) // Sort by the number of likes
     .limit(10) // Limit to top 10 trending posts
-    .populate("userId", "fullname profilePicture") // Populate user details
+    .populate("userId", "fullname profilePicture koFiUrl") // Populate user details
     .populate({
       path: "comments",
       populate: {
@@ -17,14 +17,14 @@ const getTrendingPosts = async () => {
 const getRandomPosts = async (followingIds, limit = 10) => {
   const randomPosts = await Post.find({ userId: { $nin: followingIds } })
     .limit(limit)
-    .populate("userId", "fullname profilePicture")
+    .populate("userId")
     .populate({
       path: "comments",
       populate: {
         path: "userId",
-        select: "fullname profilePicture",
       },
     });
+    console.log("Line 28 Random Posts", randomPosts)
   return randomPosts;
 };
 
