@@ -110,27 +110,27 @@ const getFeedData = async (req, res) => {
     const trending = await getTrendingPosts();
     console.log('After Treanding :',trending);
         const postMap = new Map();
-    
+        console.log('following :',followingPosts);
     // Add following posts to the map
     followingPosts.forEach((post) => {
       postMap.set(post._id.toString(), post); // Use string ID as key
     });
-
+    console.log('trending');
     // Add trending posts to the map (skipping duplicates)
     trending.forEach((post) => {
       if (!postMap.has(post._id.toString())) {
         postMap.set(post._id.toString(), post);
       }
     });
-
+    console.log('Before manuplating :');
     // Convert the map values back to an array
     const fullPosts = Array.from(postMap.values());
+    console.log('Before manuplating :',fullPosts);
     const posts = fullPosts
       .map((item) => mapPostOutput(item, curUserId))
       .reverse(); // Reverse to show newest first
-    console.log("Full Post", fullPosts[0].likes.includes(curUserId));
-    console.log("Posts", posts[0].isLikedByUser);
     // Send back only the posts (no user details or suggestions)
+    console.log('Before Sending :',posts);
     return res.send(success(200, posts));
   } catch (err) {
     // If an error occurs, send a 500 error response

@@ -4,15 +4,10 @@ const mongoose = require("mongoose");
 const { success, error } = require("../Utils/responseWrapper");
 const { mapPostOutput } = require("../Utils/utils");
 const express = require("express");
-const cloudinary = require("cloudinary").v2;
+const cloudinary = require("../Utils/cloudinaryConfig");
 const dotenv = require("dotenv");
 
 dotenv.config();
-cloudinary.config({ 
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
 const addStory = async (req, res) => {
   try {
@@ -93,13 +88,14 @@ const generateSignature = (req,res) => {
     },
     process.env.CLOUDINARY_API_SECRET
   );
-
-  res.json({
+  console.log(process.env.API_KEY)
+  const data = ({
     signature,
     timestamp,
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
+    cloudName: process.env.CLOUD_NAME,
+    apiKey: process.env.API_KEY,
   });
+  return res.json(success(201, { data}));
 }
 
 module.exports = { addStory,generateSignature };
