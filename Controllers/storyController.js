@@ -69,7 +69,7 @@ const generateSignature = (req,res) => {
 }
 
 const getStory = async(req,res) => {
-  const allStory = await story.find();
+  const allStory = await story.find().populate('userId', 'profilePicture');
   console.log(allStory);
   return res.json(success(201,{allStory}));
 }

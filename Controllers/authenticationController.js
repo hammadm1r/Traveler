@@ -12,19 +12,17 @@ const signup = async (req, res) => {
     console.log(req.body);
     // Validate the required fields
     if (!username || !email || !password || !dateOfBirth || !fullname || !bio) {
-      return res.status(400).json({ error: "Please fill all the fields" });
+      return res.send(error(400, "Please fill all the fields"));
     }
 
     // Check if email or username already exists
     const userMailExist = await user.findOne({ email });
     const userNameExist = await user.findOne({ username });
     if (userMailExist) {
-      return res.status(400).json({ error: "Email already exists" });
+      return res.send(error(400, "Email already exists"));
     }
     if (userNameExist) {
-      return res
-        .status(400)
-        .json({ error: "User with this name already exists" });
+      return res.send(error(400, "User with this name already exists"));
     }
 
     // Initialize default profile image
@@ -69,7 +67,7 @@ const signup = async (req, res) => {
 
     // Generate token
     const token = signjwt(newUser._id);
-    return res.status(200).json({ success: true, token });
+    return res.send(success(200, token ));
   } catch (err) {
     console.log(err);
     return res.send(error(500, err.message));
@@ -121,7 +119,7 @@ const getProfile = async (req, res) => {
           },
         ]});
 
-        const posts = allPosts.posts.map(item => mapPostOutput(item, req._id)).reverse();
+        const posts = allPosts?.posts?.map(item => mapPostOutput(item, req._id)).reverse();
         // Log populated user profile (you can modify this or remove it later)
         // Return the user profile and posts
         return res.status(200).json({
