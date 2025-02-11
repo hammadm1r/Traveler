@@ -51,6 +51,11 @@ const createPost = async (req, res) => {
       // Wait for all image uploads to complete
       media = await Promise.all(imageUploadPromises);
     }
+    // Assigning Achivements if Any
+    let achivement;
+    if(auther.posts.length === 0){
+      achivement = "first_Step";
+    }
     // Create a new post
     const newPost = await Post.create({
       userId: req.user.user_Id,
@@ -63,10 +68,19 @@ const createPost = async (req, res) => {
       media,
     });
     auther.posts.push(newPost._id);
+    if (!auther.badges) {
+      auther.badges = []; // Ensure array exists
+    }
+    
+    auther.badges.push({
+      name: achivement, // Correct way to push badge name
+      awardedAt: new Date(), // Ensure the date is set
+    });
+    
     await auther.save();
     const message = "Post Has Been Uploarded"
     // Return a success response with the created post
-    return res.send(success(201, {newPost,message}));
+    return res.send(success(201, {newPost,message,achivement}));
   } catch (err) {
     console.error(err); // Log the error for debugging purposes
     return res.send(error(500, "Something went wrong"));

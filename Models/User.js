@@ -77,9 +77,6 @@ const userSchema = new Schema({
       name: {
         type: String,
       },
-      description: {
-        type: String,
-      },
       awardedAt: {
         type: Date,
         default: Date.now,

@@ -2,12 +2,11 @@ const story = require("../Models/story");
 const user = require("../Models/user");
 const mongoose = require("mongoose");
 const { success, error } = require("../Utils/responseWrapper");
-const { mapPostOutput } = require("../Utils/utils");
+const { mapPostOutput, mapStoryOutput } = require("../Utils/utils");
 const express = require("express");
 const cloudinary = require("../Utils/cloudinaryConfig");
 const dotenv = require("dotenv");
 const Story = require("../Models/story");
-
 dotenv.config();
 
 const addStory = async (req, res) => {
@@ -65,14 +64,72 @@ const generateSignature = (req,res) => {
     cloudName: process.env.CLOUD_NAME,
     apiKey: process.env.API_KEY,
   });
-  return res.json(success(201, {data}));
+  return res.send(success(201, {data}));
 }
 
 const getStory = async(req,res) => {
   const allStory = await story.find().populate('userId', 'profilePicture');
-  console.log(allStory);
-  return res.json(success(201,{allStory}));
+  const curUserId = req.user?.userId;
+  return res.json(success(201,{
+    stories: allStory.map((story) => mapStoryOutput(story, curUserId)),
+  }
+  ))
 }
 
+const likeAndUnlikeStory = async (req, res) => {
+  try {
+    const { storyId } = req.body;
+    const curUserId = req.user?.userId; // Ensure user is authenticated
 
-module.exports = { addStory,generateSignature,getStory };
+    if (!storyId) {
+      return res.status(400).json({ success: false, message: "Story ID is required" });
+    }
+
+    console.log("StoryId:", storyId, "Current User Id:", curUserId);
+
+    // Validate MongoDB ObjectId format
+    if (!storyId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, message: "Invalid Story ID format" });
+    }
+
+    // Fetch the story and handle cases where it is not found
+    const curStory = await story.findById(storyId).populate('userId', 'profilePicture');;
+    if (!curStory) {
+      return res.status(404).json({ success: false, message: "Story not found" });
+    }
+
+    if (!curStory.likes) {
+      return res.status(500).json({ success: false, message: "Likes field is missing in the story document" });
+    }
+
+    // Check if user already liked the story
+    const isLiked = curStory.likes.includes(curUserId);
+
+    if (isLiked) {
+      curStory.likes.pull(curUserId);
+    } else {
+      curStory.likes.push(curUserId);
+    }
+
+    await curStory.save(); // Save updated likes
+
+    return res.status(200).json({
+      success: true,
+      message: isLiked ? "Story unliked successfully" : "Story liked successfully",
+      story: mapStoryOutput(curStory,curUserId) // Include total likes count
+    });
+
+  } catch (error) {
+    console.error("Error in likeAndUnlikeStory:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong, please try again later",
+      error: error.message, // Include detailed error message
+    });
+  }
+};
+
+
+
+
+module.exports = { addStory,generateSignature,getStory,likeAndUnlikeStory };

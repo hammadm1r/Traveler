@@ -33,6 +33,24 @@ const mapPostOutput = (post, curUserId) => {
   };
 };
 
+ const  mapStoryOutput = (story,curUserId) => {
+  const timeAgo = ta;
+  return {
+  _id: story._id,
+  title: story.title,
+  videoUrl: story.video.url,
+  location: story.location,
+  likesCount: story.likes.length,
+  isLiked: story.likes.includes(curUserId), // Check if user liked it
+  user: {
+    _id: story.userId,
+    profilePicture: story.userId.profilePicture,
+  },
+  createdAt:  timeAgo.ago(story.createdAt),
+}};
+
+
 module.exports = {
     mapPostOutput,
+    mapStoryOutput,
   };

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const cloudinary = require("../Utils/cloudinaryConfig");
 
 const storySchema = new mongoose.Schema({
   title: {
@@ -24,6 +25,12 @@ const storySchema = new mongoose.Schema({
       required: true,
     },
   },
+  likes: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user", // Reference to the user who liked the post
+    },
+  ],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
@@ -32,8 +39,10 @@ const storySchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+    index: { expires: "24h" }
   },
 });
+
 
 const Story = mongoose.model('Story', storySchema);
 module.exports = Story;
