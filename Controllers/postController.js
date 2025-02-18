@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const { success, error } = require("../Utils/responseWrapper");
 const { mapPostOutput } = require("../Utils/utils");
 const cloudinary = require("../Utils/cloudinaryConfig");
-
+const Notification = require("../Models/notification");
 const createPost = async (req, res) => {
   try {
     // Destructure the required fields from the request body
@@ -87,7 +87,7 @@ const createPost = async (req, res) => {
   }
 };
 
-const likeAndUnlikePost = async (req, res) => {
+const likeAndUnlikePost = async (req, res ,io,onlineUsers) => {
   try {
     const { postId } = req.body;
     const curUserId = req.user.user_Id;
@@ -124,6 +124,23 @@ const likeAndUnlikePost = async (req, res) => {
         select: 'fullname profilePicture',
       },
     });
+    console.log('post user',post.userId._id,'Post Id', postId);
+    if(!isLiked){
+      const notification = new Notification({
+        recipient: post.userId._id, // Post owner
+        sender: curUserId,
+        type: 'like',
+        post: postId,
+      });
+      console.log('Inside Notify');
+      await notification.save();
+    const recipientSocketId = onlineUsers.get(post.userId._id.toString());
+    console.log(recipientSocketId )
+      if (recipientSocketId) {
+        console.log('Inside Emit');
+        io.to(recipientSocketId).emit('newNotification', notification);
+      }
+    }
     // Return the response with the mapped output of the updated post
     return res
       .status(200)
