@@ -100,7 +100,6 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user_Id = req.user.user_Id;  
-      console.log(user_Id)
         // Find the user by ID
         const userProfile = await user.findById(user_Id);
     

@@ -27,32 +27,11 @@ const io = new Server(server, {
 
 let onlineUsers = new Map(); // Store connected users
 const story = require('./Routers/storyRouter');
-const { router: postRouter, setupPostRoutes } = require('./Routers/postRouter');
+const postRouter = require('./Routers/postRouter');
 const userRouter = require('./Routers/userRouter');
-setupPostRoutes(io,onlineUsers);
-
-
+const {initsocket} = require('./socket')
+initsocket(io);
 // Listen for user connections
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // Store userId when user connects
-  socket.on('join', (userId) => {
-    onlineUsers.set(userId, socket.id);
-  });
-
-  // Handle disconnections
-  socket.on('disconnect', () => {
-    for (let [key, value] of onlineUsers) {
-      if (value === socket.id) {
-        onlineUsers.delete(key);
-        break;
-      }
-    }
-    console.log('User disconnected:', socket.id);
-  });
-});
-
 app.use(cors({ 
   credentials: true,
   origin:'http://localhost:5173',

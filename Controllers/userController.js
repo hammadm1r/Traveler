@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const { mapPostOutput } = require("../Utils/utils");
 const { success, error } = require("../Utils/responseWrapper");
 const { getTrendingPosts, getRandomPosts } = require("../Utils/helpers");
+const Notification = require("../Models/notification");
+const { notify } = require("../socket");
 
 const followAndUnfollow = async (req, res) => {
   try {
@@ -49,12 +51,21 @@ const followAndUnfollow = async (req, res) => {
       // Follow
       curUser.following.push(followId);
       followUser.followers.push(curUserId);
+      
     }
 
     // Save changes
     await curUser.save();
     await followUser.save();
-
+    if(!isFollowing){
+      const notification = new Notification({
+        recipient: followId, // Post owner
+        sender: curUserId,
+        type: 'follow',
+    })
+    await notification.save();
+    notify(notification)
+    }
     return res.status(200).send(
       success(200, {
         message: isFollowing
@@ -83,16 +94,13 @@ const getFeedData = async (req, res) => {
   try {
     // Get the current user's ID
     const curUserId = req.user.user_Id;
-    console.log(curUserId);
     // Fetch the current user and populate 'following'
     const curUser = await user.findById(curUserId);
-    console.log(curUser);
     // Get the IDs of the users that the current user follows
     const followingIds = curUser.following.map((item) => item._id);
     followingIds.push(req.user.user_Id); // Add current user's own ID to include their own posts in the feed
     // Fetch posts from users that the current user follows
 
-    console.log(followingIds);
     const followingPosts = await Post.find({
       userId: { $in: followingIds },
     })
@@ -106,31 +114,25 @@ const getFeedData = async (req, res) => {
           select: "fullname profilePicture",
         },
       });
-    console.log('Before Treanding');
     const trending = await getTrendingPosts();
     console.log('After Treanding :',trending);
         const postMap = new Map();
-        console.log('following :',followingPosts);
     // Add following posts to the map
     followingPosts.forEach((post) => {
       postMap.set(post._id.toString(), post); // Use string ID as key
     });
-    console.log('trending');
     // Add trending posts to the map (skipping duplicates)
     trending.forEach((post) => {
       if (!postMap.has(post._id.toString())) {
         postMap.set(post._id.toString(), post);
       }
     });
-    console.log('Before manuplating :');
     // Convert the map values back to an array
     const fullPosts = Array.from(postMap.values());
-    console.log('Before manuplating :',fullPosts);
     const posts = fullPosts
       .map((item) => mapPostOutput(item, curUserId))
       .reverse(); // Reverse to show newest first
     // Send back only the posts (no user details or suggestions)
-    console.log('Before Sending :',posts);
     return res.send(success(200, posts));
   } catch (err) {
     // If an error occurs, send a 500 error response

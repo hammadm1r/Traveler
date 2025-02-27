@@ -5,6 +5,7 @@ const { success, error } = require("../Utils/responseWrapper");
 const { mapPostOutput } = require("../Utils/utils");
 const cloudinary = require("../Utils/cloudinaryConfig");
 const Notification = require("../Models/notification");
+const { notify } = require("../socket");
 const createPost = async (req, res) => {
   try {
     // Destructure the required fields from the request body
@@ -87,20 +88,15 @@ const createPost = async (req, res) => {
   }
 };
 
-const likeAndUnlikePost = async (req, res ,io,onlineUsers) => {
+const likeAndUnlikePost = async (req, res) => {
   try {
     const { postId } = req.body;
     const curUserId = req.user.user_Id;
-    console.log(postId);
-    console.log(curUserId);
-    console.log(req.body)
     // Find the post by ID and populate the userId reference
     const post = await Post.findById(postId).populate("userId");
-    console.log("83")
     if (!post) {
       return res.status(404).json(error(404, "Post Not Found"));
     }
-    console.log("87")
 
     // Check if the user has already liked the post
     const isLiked = post.likes.includes(curUserId);
@@ -134,14 +130,9 @@ const likeAndUnlikePost = async (req, res ,io,onlineUsers) => {
       });
       console.log('Inside Notify');
       await notification.save();
-    const recipientSocketId = onlineUsers.get(post.userId._id.toString());
-    console.log(recipientSocketId )
-      if (recipientSocketId) {
-        console.log('Inside Emit');
-        io.to(recipientSocketId).emit('newNotification', notification);
-      }
+      console.log('Entring Notify')
+      notify(notification);
     }
-    // Return the response with the mapped output of the updated post
     return res
       .status(200)
       .json(success(200, { post: mapPostOutput(responsePost, curUserId),message }));
@@ -263,7 +254,6 @@ const deletePost = async(req,res) =>{
 const getPost = async (req, res) => {
   try {
     const { _id } = req.params; // Extract post ID from request parameters
-    console.log(_id);
 
     // Fetch post from the database, populate the userId field
     let post = await Post.findById(_id).populate("userId");
