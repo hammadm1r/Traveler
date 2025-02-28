@@ -13,7 +13,7 @@ sender: {
 }, // Who triggered the event
 type: { 
     type: String, 
-    enum: ["like", "follow"], 
+    enum: ["like", "follow", "comment"], 
     required: true 
 }, // Like or Follow
 post: { 

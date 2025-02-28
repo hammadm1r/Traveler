@@ -177,7 +177,16 @@ const addComment = async (req, res) => {
     responsePost = mapPostOutput(responsePost, curUserId)
     responsePost.comments = responsePost.comments.reverse();
     console.log(responsePost.comments);
-
+      const notification = new Notification({
+        recipient: post.userId._id, // Post owner
+        sender: curUserId,
+        type: 'comment',
+        post: postId,
+      });
+      console.log('Inside Notify');
+      await notification.save();
+      console.log('Entring Notify')
+      notify(notification);
     // Return the response with the mapped output of the updated post
     return res
       .status(200)

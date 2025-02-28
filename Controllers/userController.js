@@ -192,4 +192,20 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { followAndUnfollow, getFeedData, getUserProfile };
+
+const getNotifications = async (req,res) => {
+  try {
+    const curUserId = req.user.user_Id;
+    const notificationList = await Notification.find({ recipient: curUserId.toString() }).populate({
+      path: 'sender',
+      select: 'profilePicture username',
+    });
+
+    return res.status(200).json({ success: true, notifications: notificationList });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
+
+module.exports = { followAndUnfollow, getFeedData, getUserProfile, getNotifications };

@@ -35,10 +35,11 @@ const notify = async(notification) => {
             console.error("Notification not found");
             return;
         }
-
-        const recipientSocketId = onlineUsers.get(notification.recipient.toString());
-
+        console.log(populatedNotification.recipient.toString());
+        const recipientSocketId = onlineUsers.get(populatedNotification.recipient.toString());
+        console.log(onlineUsers);
         if (recipientSocketId) {
+            console.log('If')
             ioInstance.to(recipientSocketId).emit("newNotification", populatedNotification);
         }
     } catch (error) {
