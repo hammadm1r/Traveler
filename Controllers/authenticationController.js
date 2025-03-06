@@ -27,7 +27,7 @@ const signup = async (req, res) => {
 
     // Initialize default profile image
     let CloudImg = { public_id: null, url: "/https://res.cloudinary.com/djiqzvcev/image/upload/v1729021294/blank-profile-picture-973460_1280_kwgltq.png" }; // default empty object
-
+    console.log("fuick");
     // Handle file upload to Cloudinary
     if (req.file) {
       // Create a promise to handle the async upload
@@ -49,7 +49,7 @@ const signup = async (req, res) => {
       // Wait for the upload to complete
       CloudImg = await uploadPromise;
     }
-
+    console.log("Line 52");
     // Create new user with or without uploaded profile image
     const newUser = new user({
       username,
@@ -137,10 +137,115 @@ const getProfile = async (req, res) => {
       }
     }
  
-    const updateProfile = async(req,res) =>{
-      console.log(req.body);
-      
-    }
+    const updateProfile = async (req, res) => {
+      try {
+        console.log("Request Body:", req.body);
+        const user_Id = req.user.user_Id;
+        const { fullname, username, email, password, dateOfBirth, bio } = req.body;
+        console.log("Bio received:", bio);
+    
+        // Find the current user
+        const existingUser = await user.findById(user_Id);
+        if (!existingUser) {
+          return res.send(error(404, "User not found"));
+        }
+    
+        // Check if username already exists (excluding current user)
+        if (username && username !== existingUser.username) {
+          const usernameExists = await user.findOne({ 
+            username, 
+            _id: { $ne: user_Id } 
+          });
+          if (usernameExists) {
+            return res.send(error(400, "Username already exists"));
+          }
+        }
+    
+        // Check if email already exists (excluding current user)
+        if (email && email !== existingUser.email) {
+          const emailExists = await user.findOne({ 
+            email, 
+            _id: { $ne: user_Id } 
+          });
+          if (emailExists) {
+            return res.send(error(400, "Email already exists"));
+          }
+        }
+    
+        // Validate bio length
+        if (bio && bio.length > 300) {
+          return res.send(error(400, "Bio cannot exceed 300 characters"));
+        }
+    
+        // Handle profile image upload
+        let CloudImg = existingUser.profilePicture;
+        if (req.file) {
+          // Upload new profile image to Cloudinary
+          const uploadPromise = new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { 
+                folder: "Profile_Pictures",
+                transformation: [
+                  { width: 500, height: 500, crop: 'fill' }
+                ]
+              },
+              (error, result) => {
+                if (error) {
+                  return reject({ message: "Upload to Cloudinary failed", error });
+                }
+                resolve({ public_id: result.public_id, url: result.secure_url });
+              }
+            );
+    
+            // Send the buffer to Cloudinary
+            stream.end(req.file.buffer);
+          });
+    
+          // Wait for the upload to complete
+          CloudImg = await uploadPromise;
+    
+          // If there was a previous image, delete it from Cloudinary
+          if (existingUser.profilePicture?.public_id) {
+            await cloudinary.uploader.destroy(existingUser.profilePicture.public_id);
+          }
+        }
+    
+        // Update user fields
+        if (fullname) existingUser.fullname = fullname;
+        if (username) existingUser.username = username;
+        if (email) existingUser.email = email;
+        if (dateOfBirth) existingUser.dateOfBirth = dateOfBirth;
+        if (bio !== undefined) existingUser.bio = bio; // Allow empty string
+        
+        // Update profile picture if a new one was uploaded
+        if (CloudImg) existingUser.profilePicture = CloudImg;
+    
+        // Handle password update
+        if (password) {
+          existingUser.password = password; // This assumes your pre-save middleware handles password hashing
+        }
+    
+        // Save the updated user
+        await existingUser.save();
+    
+        // Prepare response (exclude sensitive information)
+        const updatedUserResponse = {
+          fullname: existingUser.fullname,
+          username: existingUser.username,
+          email: existingUser.email,
+          dateOfBirth: existingUser.dateOfBirth,
+          profilePicture: existingUser.profilePicture,
+          bio: existingUser.bio,
+          koFiUrl: existingUser.koFiUrl
+        };
+    
+        // Send success response
+        return res.send(success(200, updatedUserResponse));
+      } catch (err) {
+        console.error('Profile update error:', err);
+        return res.send(error(500, "Internal server error"));
+      }
+    };
 
 
 module.exports = { signup, login, getProfile ,updateProfile};
