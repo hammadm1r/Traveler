@@ -137,10 +137,45 @@ const getProfile = async (req, res) => {
       }
     }
  
-    const updateProfile = async(req,res) =>{
-      console.log(req.body);
-      
-    }
+    const updateProfile = async (req, res) => {
+      try {
+        const userId = req.user.user_Id; // Extract user ID from request
+        const { fullname, bio, kofi } = req.body;
+        let updateFields = { fullname, bio, koFiUrl: kofi };
+    
+        // Handle profile picture update
+        if (req.file) {
+          // Upload new image to Cloudinary
+          const uploadPromise = new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { folder: "Profile_Pictures" },
+              (error, result) => {
+                if (error) {
+                  return reject({ message: "Upload to Cloudinary failed", error });
+                }
+                resolve({ public_id: result.public_id, url: result.secure_url });
+              }
+            );
+            stream.end(req.file.buffer);
+          });
+          
+          const CloudImg = await uploadPromise;
+          updateFields.profilePicture = CloudImg;
+        }
+    
+        // Update user profile
+        const updatedUser = await user.findByIdAndUpdate(userId, updateFields, { new: true });
+    
+        if (!updatedUser) {
+          return res.send(error(404, "User not found"));
+        }
+    
+        return res.send(success(200, { message: "Profile updated successfully", updatedUser }));
+      } catch (err) {
+        console.error(err);
+        return res.send(error(500, err.message));
+      }
+    };
 
 
 module.exports = { signup, login, getProfile ,updateProfile};
