@@ -39,7 +39,6 @@ const notify = async(notification) => {
         const recipientSocketId = onlineUsers.get(populatedNotification.recipient.toString());
         console.log(onlineUsers);
         if (recipientSocketId) {
-            console.log('If')
             ioInstance.to(recipientSocketId).emit("newNotification", populatedNotification);
         }
     } catch (error) {

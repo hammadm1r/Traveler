@@ -122,6 +122,7 @@ const likeAndUnlikePost = async (req, res) => {
     });
     console.log('post user',post.userId._id,'Post Id', postId);
     if(!isLiked){
+      if(!(post.userId._id.toString() === curUserId)){
       const notification = new Notification({
         recipient: post.userId._id, // Post owner
         sender: curUserId,
@@ -132,7 +133,7 @@ const likeAndUnlikePost = async (req, res) => {
       await notification.save();
       console.log('Entring Notify')
       notify(notification);
-    }
+    }}
     return res
       .status(200)
       .json(success(200, { post: mapPostOutput(responsePost, curUserId),message }));
@@ -177,6 +178,7 @@ const addComment = async (req, res) => {
     responsePost = mapPostOutput(responsePost, curUserId)
     responsePost.comments = responsePost.comments.reverse();
     console.log(responsePost.comments);
+    if(!(post.userId._id.toString() === curUserId)){
       const notification = new Notification({
         recipient: post.userId._id, // Post owner
         sender: curUserId,
@@ -187,6 +189,7 @@ const addComment = async (req, res) => {
       await notification.save();
       console.log('Entring Notify')
       notify(notification);
+    }
     // Return the response with the mapped output of the updated post
     return res
       .status(200)

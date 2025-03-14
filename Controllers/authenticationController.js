@@ -140,8 +140,8 @@ const getProfile = async (req, res) => {
     const updateProfile = async (req, res) => {
       try {
         const userId = req.user.user_Id; // Extract user ID from request
-        const { fullname, bio, kofi } = req.body;
-        let updateFields = { fullname, bio, koFiUrl: kofi };
+        const { fullname, bio,email,dateOfBirth, } = req.body;
+        let updateFields = { fullname, bio,email,dateOfBirth };
     
         // Handle profile picture update
         if (req.file) {
