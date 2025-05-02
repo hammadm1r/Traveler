@@ -74,7 +74,7 @@ const createPost = async (req, res) => {
     }
     
     auther.badges.push({
-      name: achivement, // Correct way to push badge name
+      name: achivement,
       awardedAt: new Date(), // Ensure the date is set
     });
     
@@ -94,6 +94,7 @@ const likeAndUnlikePost = async (req, res) => {
     const curUserId = req.user.user_Id;
     // Find the post by ID and populate the userId reference
     const post = await Post.findById(postId).populate("userId");
+    const postOwner = await user.findById(post.userId);
     if (!post) {
       return res.status(404).json(error(404, "Post Not Found"));
     }
@@ -106,6 +107,16 @@ const likeAndUnlikePost = async (req, res) => {
       ? { $pull: { likes: curUserId } } // Remove the user ID from likes array
       : { $addToSet: { likes: curUserId } }; // Add the user ID to likes array
     // Update the post and return the updated post
+    let achivement;
+    if(post.likes.length === 0 && !isLiked){
+      achivement = "explorer";
+    }
+    postOwner.badges.push({
+      name: achivement,
+      awardedAt: new Date(), // Ensure the date is set
+    });
+    
+    await postOwner.save();
     const message = isLiked
     ? 'You have unliked the post.'
     : 'You have liked the post.';
@@ -120,6 +131,7 @@ const likeAndUnlikePost = async (req, res) => {
         select: 'fullname profilePicture',
       },
     });
+    
     console.log('post user',post.userId._id,'Post Id', postId);
     if(!isLiked){
       if(!(post.userId._id.toString() === curUserId)){
