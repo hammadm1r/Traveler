@@ -54,6 +54,21 @@ const followAndUnfollow = async (req, res) => {
       
     }
 
+    let achivement;
+    if (followUser.following.length === 0 ) {
+      achivement = "adventurer";
+      const hasBadge = followUser.badges.some(obj => obj.name === achivement);
+    
+      if (!hasBadge) {
+        followUser.badges.push({
+          name: achivement,
+          awardedAt: new Date(),
+        });
+    
+        await followUser.save();
+      }
+    }
+
     // Save changes
     await curUser.save();
     await followUser.save();

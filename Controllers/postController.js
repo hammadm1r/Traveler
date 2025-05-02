@@ -57,6 +57,7 @@ const createPost = async (req, res) => {
     if(auther.posts.length === 0){
       achivement = "first_Step";
     }
+    const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
     // Create a new post
     const newPost = await Post.create({
       userId: req.user.user_Id,
@@ -69,6 +70,8 @@ const createPost = async (req, res) => {
       media,
     });
     auther.posts.push(newPost._id);
+    
+    if (!alreadyHasBadge) {
     if (!auther.badges) {
       auther.badges = []; // Ensure array exists
     }
@@ -79,6 +82,7 @@ const createPost = async (req, res) => {
     });
     
     await auther.save();
+  }
     const message = "Post Has Been Uploarded"
     // Return a success response with the created post
     return res.send(success(201, {newPost,message,achivement}));
@@ -108,15 +112,21 @@ const likeAndUnlikePost = async (req, res) => {
       : { $addToSet: { likes: curUserId } }; // Add the user ID to likes array
     // Update the post and return the updated post
     let achivement;
-    if(post.likes.length === 0 && !isLiked){
-      achivement = "explorer";
-    }
+if (post.likes.length === 0 && !isLiked) {
+  achivement = "explorer";
+
+  const hasBadge = postOwner.badges.some(obj => obj.name === achivement);
+
+  if (!hasBadge) {
     postOwner.badges.push({
       name: achivement,
-      awardedAt: new Date(), // Ensure the date is set
+      awardedAt: new Date(),
     });
-    
+
     await postOwner.save();
+  }
+}
+
     const message = isLiked
     ? 'You have unliked the post.'
     : 'You have liked the post.';
@@ -165,15 +175,33 @@ const addComment = async (req, res) => {
     if (!post) {
       return res.status(404).json(error(404, "Post Not Found"));
     }
-
+    const postOwner = await user.findById(post.userId);
     // Create a comment object
     const comment = {
       userId: curUserId,
       commentText: commentText,
     };
 
+    let achivement;
+    if (post.comments.length === 0 ) {
+      achivement = "Nature_Lover";
+      console.log("In COmment");
+      const hasBadge = postOwner.badges.some(obj => obj.name === achivement);
+    
+      if (!hasBadge) {
+        postOwner.badges.push({
+          name: achivement,
+          awardedAt: new Date(),
+        });
+    
+        await postOwner.save();
+      }
+    }
+
     // Push the comment object into the comments array
     post.comments.push(comment);
+
+    
 
     // Save the updated post
     await post.save();
@@ -190,6 +218,7 @@ const addComment = async (req, res) => {
     responsePost = mapPostOutput(responsePost, curUserId)
     responsePost.comments = responsePost.comments.reverse();
     console.log(responsePost.comments);
+
     if(!(post.userId._id.toString() === curUserId)){
       const notification = new Notification({
         recipient: post.userId._id, // Post owner

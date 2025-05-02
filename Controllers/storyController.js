@@ -13,7 +13,6 @@ const addStory = async (req, res) => {
   try {
     console.log(req.body);
     const { title, lat, long , url, publicId} = req.body;
-
     if (!title || !lat || !long || !url || !publicId) {
       return res.send(error(400, "All fields are required"));
     }
@@ -36,6 +35,23 @@ const addStory = async (req, res) => {
         publicId
       }
     });
+
+    let achivement;
+      achivement = "nomad";
+    const alreadyHasBadge = author.badges?.some(badge => badge.name === achivement);
+
+    if (!alreadyHasBadge) {
+    if (!author.badges) {
+      author.badges = []; // Ensure array exists
+    }
+    
+    author.badges.push({
+      name: achivement,
+      awardedAt: new Date(), // Ensure the date is set
+    });
+    
+    await author.save();
+  }
 
     author.stories.push(newStory._id);
     await author.save();
