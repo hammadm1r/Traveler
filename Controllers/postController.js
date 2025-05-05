@@ -53,11 +53,35 @@ const createPost = async (req, res) => {
       media = await Promise.all(imageUploadPromises);
     }
     // Assigning Achivements if Any
+
+    const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
     let achivement;
     if(auther.posts.length === 0){
       achivement = "first_Step";
+      if (!alreadyHasBadge) {
+        if (!auther.badges) {
+          auther.badges = []; // Ensure array exists
+        }
+        
+        auther.badges.push({
+          name: achivement,
+          awardedAt: new Date(), // Ensure the date is set
+        });
+        
+        await auther.save();
+      }
     }
-    const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
+    if(auther.posts.length === 99){
+      achivement = "Cultural_Traveler";
+      if (!alreadyHasBadge) {
+        auther.badges.push({
+          name: achivement,
+          awardedAt: new Date(), // Ensure the date is set
+        });
+        
+        await auther.save();
+      }
+    }
     // Create a new post
     const newPost = await Post.create({
       userId: req.user.user_Id,
@@ -71,18 +95,7 @@ const createPost = async (req, res) => {
     });
     auther.posts.push(newPost._id);
     
-    if (!alreadyHasBadge) {
-    if (!auther.badges) {
-      auther.badges = []; // Ensure array exists
-    }
     
-    auther.badges.push({
-      name: achivement,
-      awardedAt: new Date(), // Ensure the date is set
-    });
-    
-    await auther.save();
-  }
     const message = "Post Has Been Uploarded"
     // Return a success response with the created post
     return res.send(success(201, {newPost,message,achivement}));
@@ -183,7 +196,7 @@ const addComment = async (req, res) => {
     };
 
     let achivement;
-    if (post.comments.length === 0 ) {
+    if (post.comments.length === 0  ) {
       achivement = "Nature_Lover";
       console.log("In COmment");
       const hasBadge = postOwner.badges.some(obj => obj.name === achivement);
