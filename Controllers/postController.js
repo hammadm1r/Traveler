@@ -54,10 +54,11 @@ const createPost = async (req, res) => {
     }
     // Assigning Achivements if Any
 
-    const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
+    
     let achivement;
     if(auther.posts.length === 0){
       achivement = "first_Step";
+      const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
       if (!alreadyHasBadge) {
         if (!auther.badges) {
           auther.badges = []; // Ensure array exists
@@ -340,5 +341,58 @@ const getPost = async (req, res) => {
 };
 
 
+const searchAll = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const curUserId = req.user.user_Id;
 
-module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost};
+    if (!query) {
+      return res.status(400).json(error(400, "Search query is required"));
+    }
+
+    // Search Users
+    const users = await User.find({
+      $or: [
+        { fullname: { $regex: query, $options: "i" } },
+        { username: { $regex: query, $options: "i" } },
+        { bio: { $regex: query, $options: "i" } },
+      ],
+    }).select("username fullname profilePicture bio");
+
+    // Search Posts
+    const posts = await Post.find({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+        { location: { $regex: query, $options: "i" } },
+        { hashtags: { $in: [new RegExp(query, "i")] } },
+      ],
+    })
+      .populate("userId", "fullname username profilePicture")
+      .populate({
+        path: "comments",
+        populate: {
+          path: "userId",
+          select: "fullname profilePicture",
+        },
+      });
+
+    const formattedPosts = posts.map((post) => mapPostOutput(post, curUserId));
+
+    return res.status(200).json(
+      success(200, {
+        users,
+        posts: formattedPosts,
+      })
+    );
+  } catch (err) {
+    console.error("Search error:", err);
+    return res.status(500).json(error(500, "Internal Server Error"));
+  }
+};
+
+
+
+
+
+module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost ,searchAll};
