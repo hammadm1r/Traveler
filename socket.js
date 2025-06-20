@@ -30,7 +30,6 @@ const notify = async(notification) => {
         const populatedNotification = await Notification.findById(notification._id)
             .populate("sender", "username profilePicture") // Populate recipient with selected fields
             .exec();
-        console.log('populated Notify:',populatedNotification)
         if (!populatedNotification) {
             console.error("Notification not found");
             return;
@@ -40,6 +39,7 @@ const notify = async(notification) => {
         console.log(onlineUsers);
         if (recipientSocketId) {
             ioInstance.to(recipientSocketId).emit("newNotification", populatedNotification);
+            console.log(populatedNotification.type)
         }
     } catch (error) {
         console.error("Error populating notification:", error);

@@ -138,6 +138,14 @@ if (post.likes.length === 0 && !isLiked) {
     });
 
     await postOwner.save();
+    const notification = new Notification({
+        recipient: post.userId._id, // Post owner
+        sender: post.userId._id,
+        type: 'Achivement',
+        post: postId,
+      });
+      await notification.save();
+      notify(notification);
   }
 }
 
@@ -165,9 +173,7 @@ if (post.likes.length === 0 && !isLiked) {
         type: 'like',
         post: postId,
       });
-      console.log('Inside Notify');
       await notification.save();
-      console.log('Entring Notify')
       notify(notification);
     }}
     return res
