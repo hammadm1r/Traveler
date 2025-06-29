@@ -37,11 +37,12 @@ const postSchema = new Schema({
     default: Date.now, // Automatically sets the current date when a post is created
   },
   rating: {
-    type: Number, // A number rating for the visited location
-    min: 1,
-    max: 5,
-    required: true,
-  },
+  type: Number,
+  min: 1,
+  max: 5,
+  default: null, // ⬅️ Optional, not required on post creation
+},
+
   media: [
     {
       url: {

@@ -346,6 +346,35 @@ const getPost = async (req, res) => {
   }
 };
 
+const ratePost = async (req, res) => {
+  try {
+    const { postId, rating } = req.body;
+
+    if (!postId || !rating) {
+      return res.status(400).json(error(400, "Post ID and rating are required"));
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json(error(400, "Rating must be between 1 and 5"));
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json(error(404, "Post not found"));
+    }
+
+    post.rating = rating;
+    await post.save();
+
+    return res.status(200).json(success(200, { message: "Rating updated", rating }));
+  } catch (err) {
+    console.error("Rating error:", err);
+    return res.status(500).json(error(500, "Server error while rating"));
+  }
+};
+
+
+
 
 const searchAll = async (req, res) => {
   try {
@@ -401,4 +430,4 @@ const searchAll = async (req, res) => {
 
 
 
-module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost ,searchAll};
+module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost ,searchAll, ratePost,};
