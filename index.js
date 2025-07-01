@@ -15,15 +15,16 @@ dbconnection;
 
 const app = express()
 const port = process.env.PORT || 3000;
-
+const origin_env = process.env.ORIGIN
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.ORIGIN, // Frontend URL
+    origin: origin_env, // Frontend URL
     credentials: true,
   },
 });
+
 
 let onlineUsers = new Map(); // Store connected users
 const story = require('./Routers/storyRouter');
@@ -34,7 +35,7 @@ initsocket(io);
 // Listen for user connections
 app.use(cors({ 
   credentials: true,
-  origin:process.env.ORIGIN,
+  origin:origin_env,
 }));
 app.use(morgan('common'));
 app.use(express.json());
