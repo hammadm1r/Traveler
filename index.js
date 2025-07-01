@@ -14,13 +14,13 @@ dbconnection;
 
 
 const app = express()
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Frontend URL
+    origin: process.env.ORIGIN, // Frontend URL
     credentials: true,
   },
 });
@@ -34,7 +34,7 @@ initsocket(io);
 // Listen for user connections
 app.use(cors({ 
   credentials: true,
-  origin:'http://localhost:5173',
+  origin:process.env.ORIGIN,
 }));
 app.use(morgan('common'));
 app.use(express.json());
