@@ -1,5 +1,5 @@
 const Post = require("../Models/post");
-const user = require("../Models/user");
+const user = require("../Models/User");
 const mongoose = require("mongoose");
 const { success, error } = require("../Utils/responseWrapper");
 const { mapPostOutput } = require("../Utils/utils");

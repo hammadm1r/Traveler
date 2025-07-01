@@ -1,5 +1,5 @@
 const story = require("../Models/story");
-const user = require("../Models/user");
+const user = require("../Models/User");
 const mongoose = require("mongoose");
 const { success, error } = require("../Utils/responseWrapper");
 const { mapPostOutput, mapStoryOutput } = require("../Utils/utils");
