@@ -9,10 +9,11 @@ const { notify } = require("../socket");
 const createPost = async (req, res) => {
   try {
     // Destructure the required fields from the request body
-    const { title, description, location, hashtags, rating, tags } = req.body;
+    const { title, description, location, rating, tags } = req.body;
+    const hashtags = JSON.parse(req.body.hashtags); // array of strings
     console.log(req.body);
     // Check if all required fields are present
-    if (!title || !description || !location  || !rating) {
+    if (!title || !description || !location || !rating) {
       return res.send(error(400, "All fields are required"));
     }
     if (tags && tags.length > 0) {
@@ -54,33 +55,45 @@ const createPost = async (req, res) => {
     }
     // Assigning Achivements if Any
 
-    
     let achivement;
-    if(auther.posts.length === 0){
+    if (auther.posts.length === 0) {
       achivement = "first_Step";
-      const alreadyHasBadge = auther.badges?.some(badge => badge.name === achivement);
+      const alreadyHasBadge = auther.badges?.some(
+        (badge) => badge.name === achivement
+      );
       if (!alreadyHasBadge) {
         if (!auther.badges) {
           auther.badges = []; // Ensure array exists
         }
-        
+
         auther.badges.push({
           name: achivement,
           awardedAt: new Date(), // Ensure the date is set
         });
-        
+
         await auther.save();
       }
     }
-    if(auther.posts.length === 99){
+    if (auther.posts.length === 99) {
       achivement = "Cultural_Traveler";
+      const alreadyHasBadge = auther.badges?.some(
+        (badge) => badge.name === "Cultural_Traveler"
+      );
       if (!alreadyHasBadge) {
         auther.badges.push({
           name: achivement,
           awardedAt: new Date(), // Ensure the date is set
         });
-        
+
         await auther.save();
+        const notification = new Notification({
+          recipient: req.user.user_Id, // Post owner
+          sender: req.user.user_Id,
+          type: "Achivement",
+          post: req.user.user_Id,
+        });
+        await notification.save();
+        notify(notification);
       }
     }
     // Create a new post
@@ -95,11 +108,12 @@ const createPost = async (req, res) => {
       media,
     });
     auther.posts.push(newPost._id);
-    
-    
-    const message = "Post Has Been Uploarded"
+
+    await auther.save();
+
+    const message = "Post Has Been Uploarded";
     // Return a success response with the created post
-    return res.send(success(201, {newPost,message,achivement}));
+    return res.send(success(201, { newPost, message, achivement }));
   } catch (err) {
     console.error(err); // Log the error for debugging purposes
     return res.send(error(500, "Something went wrong"));
@@ -126,59 +140,62 @@ const likeAndUnlikePost = async (req, res) => {
       : { $addToSet: { likes: curUserId } }; // Add the user ID to likes array
     // Update the post and return the updated post
     let achivement;
-if (post.likes.length === 0 && !isLiked) {
-  achivement = "explorer";
+    if (post.likes.length === 0 && !isLiked) {
+      achivement = "explorer";
 
-  const hasBadge = postOwner.badges.some(obj => obj.name === achivement);
+      const hasBadge = postOwner.badges.some((obj) => obj.name === achivement);
 
-  if (!hasBadge) {
-    postOwner.badges.push({
-      name: achivement,
-      awardedAt: new Date(),
-    });
+      if (!hasBadge) {
+        postOwner.badges.push({
+          name: achivement,
+          awardedAt: new Date(),
+        });
 
-    await postOwner.save();
-    const notification = new Notification({
-        recipient: post.userId._id, // Post owner
-        sender: post.userId._id,
-        type: 'Achivement',
-        post: postId,
-      });
-      await notification.save();
-      notify(notification);
-  }
-}
+        await postOwner.save();
+        const notification = new Notification({
+          recipient: post.userId._id, // Post owner
+          sender: post.userId._id,
+          type: "Achivement",
+          post: postId,
+        });
+        await notification.save();
+        notify(notification);
+      }
+    }
 
     const message = isLiked
-    ? 'You have unliked the post.'
-    : 'You have liked the post.';
+      ? "You have unliked the post."
+      : "You have liked the post.";
     const updatedPost = await Post.findByIdAndUpdate(postId, updateOperation, {
       new: true,
     }).populate("userId");
     console.log(updatedPost);
     const responsePost = await updatedPost.populate({
-      path: 'comments', // Populate comments
+      path: "comments", // Populate comments
       populate: {
-        path: 'userId', // Assuming each comment has an 'author' field to populate
-        select: 'fullname profilePicture',
+        path: "userId", // Assuming each comment has an 'author' field to populate
+        select: "fullname profilePicture",
       },
     });
-    
-    console.log('post user',post.userId._id,'Post Id', postId);
-    if(!isLiked){
-      if(!(post.userId._id.toString() === curUserId)){
-      const notification = new Notification({
-        recipient: post.userId._id, // Post owner
-        sender: curUserId,
-        type: 'like',
-        post: postId,
-      });
-      await notification.save();
-      notify(notification);
-    }}
+
+    console.log("post user", post.userId._id, "Post Id", postId);
+    if (!isLiked) {
+      if (!(post.userId._id.toString() === curUserId)) {
+        const notification = new Notification({
+          recipient: post.userId._id, // Post owner
+          sender: curUserId,
+          type: "like",
+          post: postId,
+        });
+        await notification.save();
+        notify(notification);
+      }
+    }
     return res
       .status(200)
-      .json(success(200, { post: mapPostOutput(responsePost, curUserId),message }));
+      .json(
+        success(200, { post: mapPostOutput(responsePost, curUserId), message })
+      );
   } catch (err) {
     console.error("Error in likeAndUnlikePost:", err); // Log the error for debugging purposes
     return res.status(500).json(error(500, "Something went wrong"));
@@ -203,58 +220,63 @@ const addComment = async (req, res) => {
     };
 
     let achivement;
-    if (post.comments.length === 0  ) {
+    if (post.comments.length === 0) {
       achivement = "Nature_Lover";
       console.log("In COmment");
-      const hasBadge = postOwner.badges.some(obj => obj.name === achivement);
-    
+      const hasBadge = postOwner.badges.some((obj) => obj.name === achivement);
+
       if (!hasBadge) {
         postOwner.badges.push({
           name: achivement,
           awardedAt: new Date(),
         });
-    
+
         await postOwner.save();
+        const notification = new Notification({
+          recipient: post.userId._id, // Post owner
+          sender: post.userId._id,
+          type: "Achivement",
+          post: postId,
+        });
+        await notification.save();
+        notify(notification);
       }
     }
 
     // Push the comment object into the comments array
     post.comments.push(comment);
 
-    
-
     // Save the updated post
     await post.save();
-    let responsePost = await Post.findById(postId).populate({
-      path: 'userId', // Populate user data
-    })
-    .populate({
-      path: 'comments', // Populate comments
-      populate: {
-        path: 'userId', // Assuming each comment has an 'author' field to populate
-        select: 'fullname profilePicture',
-      },
-    });
-    responsePost = mapPostOutput(responsePost, curUserId)
+    let responsePost = await Post.findById(postId)
+      .populate({
+        path: "userId", // Populate user data
+      })
+      .populate({
+        path: "comments", // Populate comments
+        populate: {
+          path: "userId", // Assuming each comment has an 'author' field to populate
+          select: "fullname profilePicture",
+        },
+      });
+    responsePost = mapPostOutput(responsePost, curUserId);
     responsePost.comments = responsePost.comments.reverse();
     console.log(responsePost.comments);
 
-    if(!(post.userId._id.toString() === curUserId)){
+    if (!(post.userId._id.toString() === curUserId)) {
       const notification = new Notification({
         recipient: post.userId._id, // Post owner
         sender: curUserId,
-        type: 'comment',
+        type: "comment",
         post: postId,
       });
-      console.log('Inside Notify');
+      console.log("Inside Notify");
       await notification.save();
-      console.log('Entring Notify')
+      console.log("Entring Notify");
       notify(notification);
     }
     // Return the response with the mapped output of the updated post
-    return res
-      .status(200)
-      .json(success(200, { responsePost}));
+    return res.status(200).json(success(200, { responsePost }));
   } catch (err) {
     console.error("Error in addComment:", err); // Log the error for debugging purposes
     return res.send(error(500, "Something went wrong"));
@@ -284,30 +306,32 @@ const deleteComment = async (req, res) => {
       post.comments.pull(commentId);
       // Save the updated post
       await post.save();
-      
+
       // Return the response with the mapped output of the updated post
       return res
         .status(200)
         .json(success(200, { post: mapPostOutput(post, curUserId) }));
     } else {
-      return res.status(403).json(error(403, "Unauthorized to delete this comment"));
+      return res
+        .status(403)
+        .json(error(403, "Unauthorized to delete this comment"));
     }
   } catch (err) {
     return res.send(error(500, "Something went wrong"));
   }
 };
 
-const deletePost = async(req,res) =>{
+const deletePost = async (req, res) => {
   try {
-    const {postId}=req.body;
-        const curUserId = req.user.user_Id;
-        const post = await Post.findById(postId).populate("userId");
-        const curUser = await user.findById(curUserId);
-        if(!post){
-          return res.send(error(404,"Post Not Found"));
-      }
-      if(post.userId._id.toString() !== curUserId){
-        return res.send(error(403,'Only Owners can Delete Their Post'))
+    const { postId } = req.body;
+    const curUserId = req.user.user_Id;
+    const post = await Post.findById(postId).populate("userId");
+    const curUser = await user.findById(curUserId);
+    if (!post) {
+      return res.send(error(404, "Post Not Found"));
+    }
+    if (post.userId._id.toString() !== curUserId) {
+      return res.send(error(403, "Only Owners can Delete Their Post"));
     }
     const index = curUser.posts.indexOf(postId);
     if (index > -1) {
@@ -318,16 +342,18 @@ const deletePost = async(req,res) =>{
     // Remove the post itself
     await Post.findByIdAndDelete(postId);
     return res
-        .status(200)
-        .json(success(200, { post: mapPostOutput(post, curUserId) }));
+      .status(200)
+      .json(success(200, { post: mapPostOutput(post, curUserId) }));
   } catch (err) {
     return res.send(error(500, "Something went wrong"));
   }
-}
+};
 const getPost = async (req, res) => {
   try {
     const { _id } = req.params; // Extract post ID from request parameters
-
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res.status(400).send(error("Invalid post ID"));
+    }
     // Fetch post from the database, populate the userId field
     let post = await Post.findById(_id).populate("userId");
     if (!post) {
@@ -338,40 +364,42 @@ const getPost = async (req, res) => {
 
     // Map the post output (assuming mapPostOutput is a method attached to the Post model)
     // Send the post back as a successful response
-    return res.status(200).send(success(200,{post:mapPostOutput(post, req.user.user_Id)}));
-
+    return res
+      .status(200)
+      .send(success(200, { post: mapPostOutput(post, req.user.user_Id) }));
   } catch (err) {
     console.error(err); // Log the error for debugging
     return res.status(500).send(error("Something went wrong")); // Return 500 error if an exception occurs
   }
 };
 
-
 const searchAll = async (req, res) => {
   try {
     const { query } = req.query;
     const curUserId = req.user.user_Id;
 
-    if (!query) {
+    if (!query || query.trim() === "") {
       return res.status(400).json(error(400, "Search query is required"));
     }
 
-    // Search Users
-    const users = await User.find({
-      $or: [
-        { fullname: { $regex: query, $options: "i" } },
-        { username: { $regex: query, $options: "i" } },
-        { bio: { $regex: query, $options: "i" } },
-      ],
-    }).select("username fullname profilePicture bio");
+    // 1. 🔎 Search Users
+    const users = await user
+      .find({
+        $or: [
+          { fullname: { $regex: query, $options: "i" } },
+          { username: { $regex: query, $options: "i" } },
+          { bio: { $regex: query, $options: "i" } },
+        ],
+      })
+      .select("username fullname profilePicture bio");
 
-    // Search Posts
+    // 2. 🔎 Search Posts
     const posts = await Post.find({
       $or: [
         { title: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
         { location: { $regex: query, $options: "i" } },
-        { hashtags: { $in: [new RegExp(query, "i")] } },
+        { hashtags: { $in: [new RegExp(query, "i")] } }, // supports #hashtag search
       ],
     })
       .populate("userId", "fullname username profilePicture")
@@ -383,6 +411,7 @@ const searchAll = async (req, res) => {
         },
       });
 
+    // 3. 🧹 Format posts
     const formattedPosts = posts.map((post) => mapPostOutput(post, curUserId));
 
     return res.status(200).json(
@@ -397,8 +426,12 @@ const searchAll = async (req, res) => {
   }
 };
 
-
-
-
-
-module.exports = { createPost, likeAndUnlikePost, addComment, deleteComment, deletePost, getPost ,searchAll};
+module.exports = {
+  createPost,
+  likeAndUnlikePost,
+  addComment,
+  deleteComment,
+  deletePost,
+  getPost,
+  searchAll,
+};

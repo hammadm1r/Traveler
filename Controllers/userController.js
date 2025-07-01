@@ -66,6 +66,14 @@ const followAndUnfollow = async (req, res) => {
         });
     
         await followUser.save();
+        const notification = new Notification({
+                    recipient: req.user.user_Id, // Post owner
+                    sender: req.user.user_Id,
+                    type: 'Achivement',
+                    post: req.user.user_Id,
+                  });
+                  await notification.save();
+                  notify(notification);
       }
     }
 
@@ -184,12 +192,10 @@ const getUserProfile = async (req, res) => {
       ],
     });
 
-    console.log(allPosts);
     const posts = allPosts.posts
       .map((item) => mapPostOutput(item, req.user.user_Id))
       .reverse();
     const isFollowing = userProfile.followers.includes(req.user.user_Id);
-    console.log(isFollowing);
     // Log populated user profile (you can modify this or remove it later)
     // Return the user profile and posts
     return res.status(200).json({

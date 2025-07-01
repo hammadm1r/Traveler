@@ -6,12 +6,13 @@ const { mapPostOutput, mapStoryOutput } = require("../Utils/utils");
 const express = require("express");
 const cloudinary = require("../Utils/cloudinaryConfig");
 const dotenv = require("dotenv");
+const Notification = require("../Models/notification");
 const Story = require("../Models/story");
+const { notify } = require("../socket");
 dotenv.config();
 
 const addStory = async (req, res) => {
   try {
-    console.log(req.body);
     const { title, lat, long , url, publicId} = req.body;
     if (!title || !lat || !long || !url || !publicId) {
       return res.send(error(400, "All fields are required"));
@@ -51,6 +52,16 @@ const addStory = async (req, res) => {
     });
     
     await author.save();
+    console.log("54");
+    const notification = new Notification({
+            recipient: author._id, // Post owner
+            sender: author._id,
+            type: 'Achivement',
+            post: newStory._id,
+          });
+          await notification.save();
+          notify(notification);
+          console.log("63");
   }
 
     author.stories.push(newStory._id);

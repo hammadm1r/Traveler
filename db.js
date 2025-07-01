@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-
-const URI = 'mongodb://0.0.0.0:27017/traveler';
+require('dotenv').config()
+const URI = process.env.URI;
 mongoose.connect(URI);
 const db = mongoose.connection;
 
