@@ -8,117 +8,106 @@ const Notification = require("../Models/notification");
 const { notify } = require("../socket");
 const createPost = async (req, res) => {
   try {
-    // Destructure the required fields from the request body
-    const { title, description, location, rating, tags } = req.body;
-    const hashtags = JSON.parse(req.body.hashtags); // array of strings
-    console.log(req.body);
-    // Check if all required fields are present
-    if (!title || !description || !location || !rating) {
+    const { title, description, location, rating, tags, media, hashtags } = req.body;
+
+    if (!title || !description || !location || !rating || !media || !hashtags) {
       return res.send(error(400, "All fields are required"));
     }
+
+    const parsedMedia = JSON.parse(media);
+    const parsedHashtags = JSON.parse(hashtags);
+
+    if (!Array.isArray(parsedMedia) || parsedMedia.length === 0) {
+      return res.send(error(400, "Media must be an array"));
+    }
+
     if (tags && tags.length > 0) {
-      const existingUsers = await user.find({ username: { $in: tags } }); // Assuming tags contain usernames
+      const existingUsers = await user.find({ username: { $in: tags } });
       if (existingUsers.length !== tags.length) {
         return res.send(error(400, "Some tagged users do not exist"));
       }
     }
+
     const auther_Id = req.user.user_Id;
     const auther = await user.findById(auther_Id);
-    let media = [];
-    if (req.files && req.files.length > 0) {
-      // Create an array of promises for each image upload
-      const imageUploadPromises = req.files.map((file) => {
-        return new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            { resource_type: "image" },
-            (error, result) => {
-              if (error) {
-                return reject(
-                  new Error(
-                    "Error uploading image to Cloudinary: " + error.message
-                  )
-                );
-              }
-              // Resolve with the media object
-              resolve({
-                url: result.secure_url, // URL of the uploaded media
-                publicId: result.public_id, // Public ID of the uploaded media
-              });
-            }
-          );
-          uploadStream.end(file.buffer); // End the stream with the file buffer
-        });
-      });
-
-      // Wait for all image uploads to complete
-      media = await Promise.all(imageUploadPromises);
-    }
-    // Assigning Achivements if Any
-
     let achivement;
+
     if (auther.posts.length === 0) {
       achivement = "first_Step";
-      const alreadyHasBadge = auther.badges?.some(
-        (badge) => badge.name === achivement
-      );
+      const alreadyHasBadge = auther.badges?.some(b => b.name === achivement);
       if (!alreadyHasBadge) {
-        if (!auther.badges) {
-          auther.badges = []; // Ensure array exists
-        }
-
-        auther.badges.push({
-          name: achivement,
-          awardedAt: new Date(), // Ensure the date is set
-        });
-
+        auther.badges = auther.badges || [];
+        auther.badges.push({ name: achivement, awardedAt: new Date() });
         await auther.save();
       }
     }
+
     if (auther.posts.length === 99) {
       achivement = "Cultural_Traveler";
-      const alreadyHasBadge = auther.badges?.some(
-        (badge) => badge.name === "Cultural_Traveler"
-      );
+      const alreadyHasBadge = auther.badges?.some(b => b.name === achivement);
       if (!alreadyHasBadge) {
-        auther.badges.push({
-          name: achivement,
-          awardedAt: new Date(), // Ensure the date is set
-        });
-
+        auther.badges.push({ name: achivement, awardedAt: new Date() });
         await auther.save();
+
         const notification = new Notification({
-          recipient: req.user.user_Id, // Post owner
+          recipient: req.user.user_Id,
           sender: req.user.user_Id,
           type: "Achivement",
           post: req.user.user_Id,
         });
+
         await notification.save();
         notify(notification);
       }
     }
-    // Create a new post
+
     const newPost = await Post.create({
       userId: req.user.user_Id,
       title,
       description,
       location,
-      hashtags,
+      hashtags: parsedHashtags,
       rating,
-      tags: tags || [], // If tags are not provided, default to an empty array
-      media,
+      tags: tags || [],
+      media: parsedMedia,
     });
-    auther.posts.push(newPost._id);
 
+    auther.posts.push(newPost._id);
     await auther.save();
 
-    const message = "Post Has Been Uploarded";
-    // Return a success response with the created post
+    const message = "Post has been uploaded";
     return res.send(success(201, { newPost, message, achivement }));
+
   } catch (err) {
-    console.error(err); // Log the error for debugging purposes
+    console.error("CreatePost Error:", err);
     return res.send(error(500, "Something went wrong"));
   }
 };
+
+const generateSignature = (req, res) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const folder = "Post_Media"; // ✅ Correct format
+
+  const signature = cloudinary.utils.api_sign_request(
+    {
+      timestamp,
+      folder,
+    },
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  const data = {
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUD_NAME,
+    apiKey: process.env.API_KEY,
+    folder, // Include the folder so frontend knows where to upload
+  };
+
+  return res.send(success(201, { data }));
+};
+
 
 const likeAndUnlikePost = async (req, res) => {
   try {
@@ -434,4 +423,5 @@ module.exports = {
   deletePost,
   getPost,
   searchAll,
+  generateSignature,
 };

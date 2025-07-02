@@ -17,7 +17,7 @@ const app = express()
 const port = process.env.PORT || 3000;
 const origin_env = process.env.ORIGIN
 const server = http.createServer(app);
-
+console.log(origin_env);
 const io = new Server(server, {
   cors: {
     origin: origin_env, // Frontend URL

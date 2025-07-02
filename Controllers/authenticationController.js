@@ -7,50 +7,43 @@ const cloudinary = require("../Utils/cloudinaryConfig");
 
 const signup = async (req, res) => {
   try {
+    const {
+      username,
+      fullname,
+      email,
+      password,
+      dateOfBirth,
+      bio,
+      kofi,
+      profilePictureUrl,
+      profilePicturePublicId,
+    } = req.body;
     console.log(req.body);
-    const { username, fullname, email, password, dateOfBirth,bio,kofi } = req.body;
-    console.log(req.body);
-    // Validate the required fields
+    // ✅ Basic field validation
     if (!username || !email || !password || !dateOfBirth || !fullname || !bio) {
-      return res.send(error(400, "Please fill all the fields"));
+      return res.send(error(400, "Please fill all the required fields"));
     }
 
-    // Check if email or username already exists
+    // ✅ Check for existing email or username
     const userMailExist = await user.findOne({ email });
-    const userNameExist = await user.findOne({ username });
     if (userMailExist) {
       return res.send(error(400, "Email already exists"));
     }
+
+    const userNameExist = await user.findOne({ username });
     if (userNameExist) {
-      return res.send(error(400, "User with this name already exists"));
+      return res.send(error(400, "Username already exists"));
     }
 
-    // Initialize default profile image
-    let CloudImg = { public_id: null, url: "/https://res.cloudinary.com/djiqzvcev/image/upload/v1729021294/blank-profile-picture-973460_1280_kwgltq.png" }; // default empty object
+    // ✅ Prepare profile picture object
+    const profilePicture = {
+      public_id: profilePicturePublicId || null,
+      url:
+        profilePictureUrl ||
+        "https://res.cloudinary.com/djiqzvcev/image/upload/v1729021294/blank-profile-picture-973460_1280_kwgltq.png",
+    };
 
-    // Handle file upload to Cloudinary
-    if (req.file) {
-      // Create a promise to handle the async upload
-      const uploadPromise = new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "Profile_Pictures" },
-          (error, result) => {
-            if (error) {
-              return reject({ message: "Upload to Cloudinary failed", error });
-            }
-            resolve({ public_id: result.public_id, url: result.secure_url });
-          }
-        );
-
-        // Send the buffer to Cloudinary
-        stream.end(req.file.buffer);
-      });
-
-      // Wait for the upload to complete
-      CloudImg = await uploadPromise;
-    }
-
-    // Create new user with or without uploaded profile image
+    // ✅ Create new user
     const newUser = new user({
       username,
       fullname,
@@ -59,19 +52,40 @@ const signup = async (req, res) => {
       dateOfBirth,
       koFiUrl: kofi,
       bio,
-      profilePicture: CloudImg, // Add the profile picture to user object
+      profilePicture,
     });
-    console.log(newUser);
-    // Save the user to the database
+
     await newUser.save();
 
-    // Generate token
+    // ✅ Generate and return token
     const token = signjwt(newUser._id);
-    return res.send(success(200, token ));
+    return res.send(success(200, token));
   } catch (err) {
-    console.log(err);
+    console.error("Signup Error:", err);
     return res.send(error(500, err.message));
   }
+};
+
+
+const generateProfilePicSignature = (req, res) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const signature = cloudinary.utils.api_sign_request(
+    {
+      timestamp,
+      folder: "Profile_Pictures",
+    },
+    process.env.CLOUDINARY_API_SECRET
+  );
+  console.log(signature,
+    timestamp,process.env.CLOUD_NAME,
+    "ApiKey",process.env.API_KEY, )
+  return res.status(201).json({
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUD_NAME,
+    apiKey: process.env.API_KEY, 
+  });
 };
 
 const login = async (req, res) => {
@@ -178,4 +192,4 @@ const getProfile = async (req, res) => {
     };
 
 
-module.exports = { signup, login, getProfile ,updateProfile};
+module.exports = { signup, login, getProfile ,updateProfile,generateProfilePicSignature};
