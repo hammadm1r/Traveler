@@ -13,87 +13,153 @@ dotenv.config();
 
 const addStory = async (req, res) => {
   try {
-    const { title, lat, long , url, publicId} = req.body;
-    if (!title || !lat || !long || !url || !publicId) {
-      return res.send(error(400, "All fields are required"));
+    const { title, lat, long, url, publicId } = req.body;
+
+    // Validate required fields
+    const requiredFields = { title, lat, long, url, publicId };
+    for (const [field, value] of Object.entries(requiredFields)) {
+      if (!value) {
+        return res.status(400).json({
+          success: false,
+          message: `${field} is required`,
+        });
+      }
     }
 
-    if (!req.user || !req.user.user_Id) {
-      return res.send(error(401, "Unauthorized: User not logged in"));
+    // Validate coordinates
+    if (isNaN(lat) || isNaN(long) || lat < -90 || lat > 90 || long < -180 || long > 180) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coordinates provided",
+      });
     }
 
-    const author = await user.findById(req.user.user_Id);
+    // Check authentication
+    if (!req.user?.user_Id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not logged in",
+      });
+    }
+
+    // Find user and validate
+    const author = await user.findById(req.user.user_Id).select('+badges');
     if (!author) {
-      return res.send(error(404, "User not found"));
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
+    // Create story
     const newStory = await story.create({
       title,
-      location: { latitude: lat, longitude: long },
+      location: { 
+        latitude: parseFloat(lat), 
+        longitude: parseFloat(long) 
+      },
       userId: req.user.user_Id,
-      video : {
+      video: {
         url,
         publicId
       }
     });
 
-    let achivement;
-      achivement = "nomad";
-    const alreadyHasBadge = author.badges?.some(badge => badge.name === achivement);
+    // Achievement logic
+    const achievement = "nomad";
+    const alreadyHasBadge = author.badges?.some(badge => badge.name === achievement);
 
     if (!alreadyHasBadge) {
-    if (!author.badges) {
-      author.badges = []; // Ensure array exists
-    }
-    
-    author.badges.push({
-      name: achivement,
-      awardedAt: new Date(), // Ensure the date is set
-    });
-    
-    await author.save();
-    console.log("54");
-    const notification = new Notification({
-            recipient: author._id, // Post owner
-            sender: author._id,
-            type: 'Achivement',
-            post: newStory._id,
-          });
-          await notification.save();
-          notify(notification);
-          console.log("63");
-  }
+      // Initialize badges array if it doesn't exist
+      if (!author.badges) {
+        author.badges = [];
+      }
+      
+      // Add new badge
+      author.badges.push({
+        name: achievement,
+        awardedAt: new Date(),
+      });
 
+      // Create notification
+      const notification = new Notification({
+        recipient: author._id,
+        sender: author._id,
+        type: 'Achievement',
+        post: newStory._id,
+      });
+
+      // Save changes in parallel
+      await Promise.all([
+        author.save(),
+        notification.save()
+      ]);
+
+      // Notify user
+      notify(notification);
+    }
+
+    // Add story to user's stories
     author.stories.push(newStory._id);
     await author.save();
 
-    const message = "Story has been uploaded successfully";
-    return res.send(success(201, { newStory, message }));
+    // Prepare response
+    const mappedStory = mapStoryOutput(newStory, author);
+    
+    return res.status(201).json({
+      success: true,
+      message: "Story has been uploaded successfully",
+      data: {
+        story: mappedStory
+      }
+    });
+
   } catch (err) {
     console.error("Error in addStory:", err);
-    return res.send(error(500, "Something went wrong"));
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
-const generateSignature = (req,res) => {
-  const timestamp = Math.round(new Date().getTime() / 1000); // Current timestamp
-  const signature = cloudinary.utils.api_sign_request(
-    {
+const generateSignature = (req, res) => {
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const params = {
       timestamp,
-      folder: "Story_Media", // Optional: Specify folder
-    },
-    process.env.CLOUDINARY_API_SECRET
-  );
-  console.log(process.env.API_KEY)
-  const data = ({
-    signature,
-    timestamp,
-    cloudName: process.env.CLOUD_NAME,
-    apiKey: process.env.API_KEY,
-  });
-  return res.send(success(201, {data}));
-}
+      folder: "Story_Media",
+    };
 
+    const signature = cloudinary.utils.api_sign_request(
+      params,
+      process.env.CLOUDINARY_API_SECRET
+    );
+
+    if (!signature) {
+      throw new Error("Failed to generate signature");
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        signature,
+        timestamp,
+        cloudName: process.env.CLOUD_NAME,
+        apiKey: process.env.API_KEY,
+      }
+    });
+
+  } catch (err) {
+    console.error("Error in generateSignature:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate Cloudinary signature",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
 const getStory = async(req,res) => {
   const allStory = await story.find().populate('userId', 'profilePicture');
   const curUserId = req.user?.userId;

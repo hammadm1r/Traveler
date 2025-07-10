@@ -88,6 +88,8 @@ const userSchema = new Schema({
     enum: [0, 1],
     default: 0, // Set default to 0 (unverified)
   },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   createdAt: {
     type: Date,
     default: Date.now,
