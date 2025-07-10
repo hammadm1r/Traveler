@@ -263,7 +263,7 @@ const resetPassword = async (req, res) => {
     userProfile.password = newPassword;
     userProfile.resetPasswordToken = undefined;
     userProfile.resetPasswordExpires = undefined;
-    await user.save();
+    await userProfile.save();
 
     res.status(200).json({ message: "Password reset successful!" });
   } catch (err) {
