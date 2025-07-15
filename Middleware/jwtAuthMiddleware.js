@@ -24,5 +24,24 @@ const signjwt = (user_Id) =>{
 }
 
 
-module.exports = {signjwt,verifyAuthToken};
+const optionalAuthToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith("Bearer")) {
+    const token = authHeader.split(" ")[1];
+    try {
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      req.user = decoded; // Add user if token is valid
+    } catch (err) {
+      console.warn("Invalid token in optionalAuthToken:", err.message);
+      req.user = null; // Ignore token errors
+    }
+  } else {
+    req.user = null; // No token provided
+  }
+
+  next();
+};
+
+module.exports = {signjwt,verifyAuthToken,optionalAuthToken};
 

@@ -339,28 +339,33 @@ const deletePost = async (req, res) => {
 };
 const getPost = async (req, res) => {
   try {
-    const { _id } = req.params; // Extract post ID from request parameters
+    const { _id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(_id)) {
       return res.status(400).send(error("Invalid post ID"));
     }
-    // Fetch post from the database, populate the userId field
-    let post = await Post.findById(_id).populate("userId");
+
+    const post = await Post.findById(_id)
+      .populate("userId")
+      .populate("comments.userId");
+
     if (!post) {
-      return res.status(404).send(error("Post Not Found")); // Return 404 if post is not found
+      return res.status(404).send(error("Post Not Found"));
     }
 
-    console.log(post);
+    const curUserId = req.user?.user_Id || null;
 
-    // Map the post output (assuming mapPostOutput is a method attached to the Post model)
-    // Send the post back as a successful response
-    return res
-      .status(200)
-      .send(success(200, { post: mapPostOutput(post, req.user.user_Id) }));
+    return res.status(200).send(
+      success(200, {
+        post: mapPostOutput(post, curUserId),
+      })
+    );
   } catch (err) {
-    console.error(err); // Log the error for debugging
-    return res.status(500).send(error("Something went wrong")); // Return 500 error if an exception occurs
+    console.error(err);
+    return res.status(500).send(error("Something went wrong"));
   }
 };
+
 
 const searchAll = async (req, res) => {
   try {
