@@ -17,7 +17,7 @@ const createPost = async (req, res) => {
     const parsedMedia = JSON.parse(media);
     const parsedHashtags = JSON.parse(hashtags);
 
-    if (!Array.isArray(parsedMedia) || parsedMedia.length === 0) {
+    if (!Array.isArray(parsedMedia)) {
       return res.send(error(400, "Media must be an array"));
     }
 
