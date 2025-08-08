@@ -74,6 +74,7 @@ const addStory = async (req, res) => {
       if (!author.badges) {
         author.badges = [];
       }
+      
       // Add new badge
       author.badges.push({
         name: achievement,
