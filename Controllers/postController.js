@@ -378,38 +378,31 @@ const searchAll = async (req, res) => {
 
     query = query.trim();
 
-    // 1. 🔎 Search Users (only if query doesn't start with #)
-    let users = [];
-    if (!query.startsWith("#")) {
-      users = await user
-        .find({
-          $or: [
-            { fullname: { $regex: query, $options: "i" } },
-            { username: { $regex: query, $options: "i" } },
-            { bio: { $regex: query, $options: "i" } },
-          ],
-        })
-        .select("username fullname profilePicture bio");
+    // Remove leading # if present
+    if (query.startsWith("#")) {
+      query = query.slice(1);
     }
+
+    // 1. 🔎 Search Users
+    const users = await user
+      .find({
+        $or: [
+          { fullname: { $regex: query, $options: "i" } },
+          { username: { $regex: query, $options: "i" } },
+          { bio: { $regex: query, $options: "i" } },
+        ],
+      })
+      .select("username fullname profilePicture bio");
 
     // 2. 🔎 Search Posts
-    let postFilter = {};
-
-    if (query.startsWith("#")) {
-      // Hashtag search: match the exact hashtag (without #)
-      const hashtag = query.slice(1); 
-      postFilter = { hashtags: { $in: [new RegExp(`^${hashtag}$`, "i")] } };
-    } else {
-      // Normal search in multiple fields
-      postFilter = {
-        $or: [
-          { title: { $regex: query, $options: "i" } },
-          { description: { $regex: query, $options: "i" } },
-          { location: { $regex: query, $options: "i" } },
-          { hashtags: { $in: [new RegExp(query, "i")] } },
-        ],
-      };
-    }
+    const postFilter = {
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+        { location: { $regex: query, $options: "i" } },
+        { hashtags: { $regex: query, $options: "i" } }, // matches stored hashtags without #
+      ],
+    };
 
     const posts = await Post.find(postFilter)
       .populate("userId", "fullname username profilePicture")
@@ -435,6 +428,7 @@ const searchAll = async (req, res) => {
     return res.status(500).json(error(500, "Internal Server Error"));
   }
 };
+
 
 
 module.exports = {
